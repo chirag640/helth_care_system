@@ -1,0 +1,16 @@
+version: 1
+app_name: "helth_care_system"
+platforms:
+  - "mobile"
+state_management: "riverpod"
+ci_provider: "github"
+analytics_provider: "none"
+features:
+  analytics: false
+  api: true
+  env: true
+  hive: true
+  localization: false
+  pagination: false
+  tests: false
+  theme: true
