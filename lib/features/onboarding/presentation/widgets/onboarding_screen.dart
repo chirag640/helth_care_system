@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/responsive.dart';
 
@@ -20,33 +21,33 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.onboardingBackground,
+      color: AppColors.white,
       child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: AppResponsive.p(context, 24),
         ),
         child: Column(
           children: [
-            const Spacer(flex: 1),
+            // const Spacer(flex: 1),
             // Illustration
             SizedBox(
-              height: AppResponsive.h(context, 0.45),
-              child: Image.asset(
+              height: AppResponsive.h(context, 0.6),
+              child: SvgPicture.asset(
                 svgAsset,
-                fit: BoxFit.contain,
+                fit: BoxFit.fitWidth,
               ),
             ),
-            const Spacer(flex: 1),
+            SizedBox(height: AppResponsive.p(context, 16)),
             // Title
             _buildTitle(context),
-            SizedBox(height: AppResponsive.p(context, 16)),
+            SizedBox(height: AppResponsive.p(context, 14)),
             // Description
             Text(
               description,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: AppResponsive.fontSize(context, 14),
+                fontSize: AppResponsive.fontSize(context, 12),
                 height: 1.5,
               ),
             ),

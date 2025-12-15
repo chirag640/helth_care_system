@@ -12,21 +12,21 @@ class OnboardingPage extends ConsumerWidget {
 
   static const onboardingData = [
     {
-      'svg': 'assets/images/onboarding1.png',
+      'svg': 'assets/svgs/onboarding1.svg',
       'title': 'Locate Nearby Co-Working Spaces Effortlessly',
       'highlight': 'Nearby Co-Working Spaces',
       'description':
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
     },
     {
-      'svg': 'assets/images/onboarding2.png',
+      'svg': 'assets/svgs/onboarding2.svg',
       'title': 'Co-Work Favorites: Save for Later',
       'highlight': 'Co-Work Favorites:',
       'description':
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
     },
     {
-      'svg': 'assets/images/onboarding3.png',
+      'svg': 'assets/svgs/onboarding3.svg',
       'title': 'Simplify Workspace Booking Tracking',
       'highlight': 'Workspace Booking Tracking',
       'description':
