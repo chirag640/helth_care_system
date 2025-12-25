@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../../core/widgets/common_widgets.dart';
 import '../../../../core/widgets/profile_menu_item.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../auth/controller/auth_controller.dart';
 import '../../controller/profile_controller.dart';
+import '../../models/models.dart';
 
 /// Profile main page
 class ProfilePage extends ConsumerWidget {
@@ -14,7 +17,34 @@ class ProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileControllerProvider);
-    final profile = profileState.profile;
+    final patient = profileState.patient;
+
+    // Show loading state
+    if (profileState.isLoading && patient == null) {
+      return Scaffold(
+        backgroundColor: AppColors.white,
+        body: const Center(child: LoadingIndicator()),
+        bottomNavigationBar: AppBottomNav.create(context, 4),
+      );
+    }
+
+    // Show error state
+    if (profileState.error != null && patient == null) {
+      return Scaffold(
+        backgroundColor: AppColors.white,
+        body: Center(
+          child: ErrorDisplay(
+            message: profileState.error!,
+            onRetry: () =>
+                ref.read(profileControllerProvider.notifier).loadProfile(),
+          ),
+        ),
+        bottomNavigationBar: AppBottomNav.create(context, 4),
+      );
+    }
+
+    // Create display data from patient model
+    final displayData = _ProfileDisplayData.fromPatient(patient);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -48,7 +78,7 @@ class ProfilePage extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        profile.fullName,
+                        displayData.fullName,
                         style: TextStyle(
                           fontSize: AppResponsive.fontSize(context, 24),
                           fontWeight: FontWeight.bold,
@@ -58,7 +88,7 @@ class ProfilePage extends ConsumerWidget {
                       GestureDetector(
                         onTap: () {
                           // Show QR dialog
-                          _showQRDialog(context, profile);
+                          _showQRDialog(context, displayData);
                         },
                         child: Container(
                           padding: EdgeInsets.all(
@@ -84,7 +114,17 @@ class ProfilePage extends ConsumerWidget {
                     children: [
                       CircleAvatar(
                         radius: AppResponsive.s(context, 40),
-                        backgroundImage: AssetImage(profile.avatarPath!),
+                        backgroundImage: displayData.avatarPath != null
+                            ? (displayData.avatarPath!.startsWith('http')
+                                ? NetworkImage(displayData.avatarPath!)
+                                : AssetImage(displayData.avatarPath!)
+                                    as ImageProvider)
+                            : null,
+                        child: displayData.avatarPath == null
+                            ? Icon(Icons.person,
+                                size: AppResponsive.icon(context, 40),
+                                color: AppColors.white)
+                            : null,
                       ),
                       SizedBox(width: AppResponsive.p(context, 16)),
                       Expanded(
@@ -92,7 +132,7 @@ class ProfilePage extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              profile.phoneNumber,
+                              displayData.phoneNumber,
                               style: TextStyle(
                                 fontSize: AppResponsive.fontSize(context, 14),
                                 color: AppColors.white,
@@ -111,7 +151,7 @@ class ProfilePage extends ConsumerWidget {
                                 ),
                               ),
                               child: Text(
-                                'ID: ${profile.userId}',
+                                'ID: ${displayData.userId}',
                                 style: TextStyle(
                                   fontSize: AppResponsive.fontSize(context, 12),
                                   color: AppColors.white,
@@ -135,13 +175,13 @@ class ProfilePage extends ConsumerWidget {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.male,
+                              displayData.genderIcon,
                               size: AppResponsive.icon(context, 16),
                               color: AppColors.primary,
                             ),
                             SizedBox(width: AppResponsive.p(context, 4)),
                             Text(
-                              profile.gender,
+                              displayData.gender,
                               style: TextStyle(
                                 fontSize: AppResponsive.fontSize(context, 12),
                                 color: AppColors.primary,
@@ -379,7 +419,7 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  void _showQRDialog(BuildContext context, ProfileData profile) {
+  void _showQRDialog(BuildContext context, _ProfileDisplayData profile) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -397,7 +437,14 @@ class ProfilePage extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: AppResponsive.s(context, 24),
-                    backgroundImage: AssetImage(profile.avatarPath!),
+                    backgroundImage: profile.avatarPath != null
+                        ? (profile.avatarPath!.startsWith('http')
+                            ? NetworkImage(profile.avatarPath!)
+                            : AssetImage(profile.avatarPath!) as ImageProvider)
+                        : null,
+                    child: profile.avatarPath == null
+                        ? const Icon(Icons.person, color: Colors.white)
+                        : null,
                   ),
                   SizedBox(width: AppResponsive.p(context, 12)),
                   Expanded(
@@ -499,26 +546,150 @@ class ProfilePage extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            AppResponsive.radius(context, 16),
+          ),
+        ),
+        title: Text(
+          'Sign Out',
+          style: TextStyle(
+            fontSize: AppResponsive.fontSize(context, 20),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to sign out?',
+          style: TextStyle(
+            fontSize: AppResponsive.fontSize(context, 14),
+            color: AppColors.textSecondary,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: AppResponsive.p(context, 20),
+                vertical: AppResponsive.p(context, 12),
+              ),
+            ),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: AppResponsive.fontSize(context, 14),
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              ref.read(profileControllerProvider.notifier).signOut();
+          ElevatedButton(
+            onPressed: () async {
               Navigator.pop(context);
-              Navigator.of(context).pushReplacementNamed(AppRouter.signIn);
+              // Show loading indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+
+              // Sign out using auth controller
+              await ref.read(authControllerProvider.notifier).signOut();
+
+              if (context.mounted) {
+                // Close loading indicator
+                Navigator.pop(context);
+                // Navigate to sign in page and clear all previous routes
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  AppRouter.signIn,
+                  (route) => false,
+                );
+              }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.signOutText,
+              padding: EdgeInsets.symmetric(
+                horizontal: AppResponsive.p(context, 20),
+                vertical: AppResponsive.p(context, 12),
+              ),
+            ),
             child: Text(
               'Sign Out',
-              style: TextStyle(color: AppColors.signOutText),
+              style: TextStyle(
+                fontSize: AppResponsive.fontSize(context, 14),
+                color: AppColors.white,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+/// Helper class to extract display data from PatientModel
+class _ProfileDisplayData {
+  const _ProfileDisplayData({
+    required this.fullName,
+    required this.phoneNumber,
+    required this.userId,
+    required this.gender,
+    required this.genderIcon,
+    this.avatarPath,
+  });
+
+  factory _ProfileDisplayData.fromPatient(PatientModel? patient) {
+    if (patient == null) {
+      return _ProfileDisplayData(
+        fullName: 'User',
+        phoneNumber: 'Not set',
+        userId: 'N/A',
+        gender: 'N/A',
+        genderIcon: Icons.person,
+        avatarPath: null,
+      );
+    }
+
+    IconData genderIcon;
+    String genderDisplay;
+    switch (patient.gender) {
+      case Gender.male:
+        genderIcon = Icons.male;
+        genderDisplay = 'Male';
+        break;
+      case Gender.female:
+        genderIcon = Icons.female;
+        genderDisplay = 'Female';
+        break;
+      case Gender.other:
+        genderIcon = Icons.transgender;
+        genderDisplay = 'Other';
+        break;
+      case Gender.preferNotToSay:
+        genderIcon = Icons.person;
+        genderDisplay = 'Prefer not to say';
+        break;
+      case null:
+        genderIcon = Icons.person;
+        genderDisplay = 'N/A';
+        break;
+    }
+
+    return _ProfileDisplayData(
+      fullName: patient.fullName,
+      phoneNumber: patient.phoneNumber ?? 'Not set',
+      userId: patient.id,
+      gender: genderDisplay,
+      genderIcon: genderIcon,
+      avatarPath: patient.profilePhoto,
+    );
+  }
+
+  final String fullName;
+  final String phoneNumber;
+  final String userId;
+  final String gender;
+  final IconData genderIcon;
+  final String? avatarPath;
 }

@@ -7,11 +7,13 @@ import '../../utils/logger.dart';
 /// Implements industry-standard retry logic to prevent retry storms
 class RetryInterceptor extends Interceptor {
   RetryInterceptor({
+    required this.dio,
     this.maxRetries = 3,
     this.baseDelay = const Duration(milliseconds: 500),
     this.maxDelay = const Duration(seconds: 10),
   });
 
+  final Dio dio;
   final int maxRetries;
   final Duration baseDelay;
   final Duration maxDelay;
@@ -40,8 +42,8 @@ class RetryInterceptor extends Interceptor {
         final delay = _calculateDelay(retryCount);
         await Future.delayed(delay);
 
-        // Attempt the request again
-        final response = await Dio().fetch(requestOptions);
+        // Attempt the request again using the configured Dio instance
+        final response = await dio.fetch(requestOptions);
 
         // Success - clean up tracking and resolve
         _retryMap.remove(requestOptions);

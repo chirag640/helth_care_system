@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../utils/responsive.dart';
+import '../../features/appointment/models/appointment_model.dart';
 
-/// Appointment card model
+/// Appointment card model (legacy - for backwards compatibility)
 class AppointmentData {
   final String doctorName;
   final String specialty;
@@ -25,36 +27,65 @@ class AppointmentData {
     this.isVerified = false,
     this.isUpcoming = false,
   });
+
+  /// Create from AppointmentModel
+  factory AppointmentData.fromModel(AppointmentModel model) {
+    final timeFormat = DateFormat('h:mm a');
+    final dayFormat = DateFormat('EEEE');
+    final dateFormat = DateFormat('d MMMM');
+
+    return AppointmentData(
+      doctorName: model.doctor?.name ?? 'Unknown Doctor',
+      specialty: model.doctor?.specialty ?? 'General Practitioner',
+      timeRange:
+          '${timeFormat.format(model.scheduledAt)} - ${timeFormat.format(model.endTime)}',
+      day: dayFormat.format(model.scheduledAt),
+      date: dateFormat.format(model.scheduledAt),
+      appointmentType: model.reasonForVisit ?? model.type.displayName,
+      location: model.hospital?.fullAddress ?? 'Location not specified',
+      isVerified: model.doctor?.isVerified ?? false,
+      isUpcoming: model.isUpcoming,
+    );
+  }
 }
 
-/// Appointment card widget
+/// Appointment card widget - now supports both AppointmentData and AppointmentModel
 class AppointmentCard extends StatelessWidget {
   const AppointmentCard({
     super.key,
-    required this.data,
+    this.data,
+    this.appointment,
     this.onTap,
     this.showExternalLink = false,
-  });
+  }) : assert(data != null || appointment != null,
+            'Either data or appointment must be provided');
 
-  final AppointmentData data;
+  final AppointmentData? data;
+  final AppointmentModel? appointment;
   final VoidCallback? onTap;
   final bool showExternalLink;
 
+  AppointmentData get _displayData =>
+      data ?? AppointmentData.fromModel(appointment!);
+
   @override
   Widget build(BuildContext context) {
+    final displayData = _displayData;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(bottom: AppResponsive.p(context, 16)),
         padding: EdgeInsets.all(AppResponsive.p(context, 12)),
         decoration: BoxDecoration(
-          color: data.isUpcoming
+          color: displayData.isUpcoming
               ? AppColors.appointmentCardBackground
               : AppColors.white,
           borderRadius:
               BorderRadius.circular(AppResponsive.radius(context, 16)),
           border: Border.all(
-            color: data.isUpcoming ? Colors.transparent : AppColors.greyLight,
+            color: displayData.isUpcoming
+                ? Colors.transparent
+                : AppColors.greyLight,
             width: AppResponsive.thickness(context, 1),
           ),
         ),
@@ -80,7 +111,7 @@ class AppointmentCard extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              data.doctorName,
+                              displayData.doctorName,
                               style: TextStyle(
                                 fontSize: AppResponsive.fontSize(context, 15),
                                 fontWeight: FontWeight.bold,
@@ -90,7 +121,7 @@ class AppointmentCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (data.isVerified) ...[
+                          if (displayData.isVerified) ...[
                             SizedBox(width: AppResponsive.p(context, 4)),
                             Icon(
                               Icons.verified,
@@ -111,7 +142,7 @@ class AppointmentCard extends StatelessWidget {
                           SizedBox(width: AppResponsive.p(context, 4)),
                           Flexible(
                             child: Text(
-                              data.specialty,
+                              displayData.specialty,
                               style: TextStyle(
                                 fontSize: AppResponsive.fontSize(context, 12),
                                 color: AppColors.primary,
@@ -144,7 +175,7 @@ class AppointmentCard extends StatelessWidget {
                       vertical: AppResponsive.p(context, 8),
                     ),
                     decoration: BoxDecoration(
-                      color: data.isUpcoming
+                      color: displayData.isUpcoming
                           ? AppColors.appointmentTimeBackground
                           : AppColors.appointmentTimeBackground,
                       borderRadius: BorderRadius.circular(
@@ -162,7 +193,7 @@ class AppointmentCard extends StatelessWidget {
                         SizedBox(width: AppResponsive.p(context, 4)),
                         Flexible(
                           child: Text(
-                            data.timeRange,
+                            displayData.timeRange,
                             style: TextStyle(
                               fontSize: AppResponsive.fontSize(context, 12),
                               fontWeight: FontWeight.w500,
@@ -184,7 +215,7 @@ class AppointmentCard extends StatelessWidget {
                       vertical: AppResponsive.p(context, 8),
                     ),
                     decoration: BoxDecoration(
-                      color: data.isUpcoming
+                      color: displayData.isUpcoming
                           ? AppColors.appointmentTimeBackground
                           : AppColors.appointmentTimeBackground,
                       borderRadius: BorderRadius.circular(
@@ -202,7 +233,7 @@ class AppointmentCard extends StatelessWidget {
                         SizedBox(width: AppResponsive.p(context, 4)),
                         Flexible(
                           child: Text(
-                            '${data.day}, ${data.date}',
+                            '${displayData.day}, ${displayData.date}',
                             style: TextStyle(
                               fontSize: AppResponsive.fontSize(context, 12),
                               fontWeight: FontWeight.w500,
@@ -226,14 +257,14 @@ class AppointmentCard extends StatelessWidget {
                 vertical: AppResponsive.p(context, 6),
               ),
               decoration: BoxDecoration(
-                color: data.isUpcoming
+                color: displayData.isUpcoming
                     ? AppColors.appointmentBadgeBackground
                     : AppColors.appointmentTimeBackground,
                 borderRadius:
                     BorderRadius.circular(AppResponsive.radius(context, 8)),
               ),
               child: Text(
-                data.appointmentType,
+                displayData.appointmentType,
                 style: TextStyle(
                   fontSize: AppResponsive.fontSize(context, 13),
                   fontWeight: FontWeight.w600,
@@ -253,7 +284,7 @@ class AppointmentCard extends StatelessWidget {
                 SizedBox(width: AppResponsive.p(context, 4)),
                 Expanded(
                   child: Text(
-                    data.location,
+                    displayData.location,
                     style: TextStyle(
                       fontSize: AppResponsive.fontSize(context, 12),
                       color: AppColors.textSecondary,

@@ -4,6 +4,7 @@ enum AppEnvironment { dev, stage, prod }
 
 class EnvLoader {
   static AppEnvironment currentEnvironment = AppEnvironment.dev;
+  static bool _isLoaded = false;
 
   static Future<void> load({String fileName = '.env'}) async {
     try {
@@ -13,12 +14,21 @@ class EnvLoader {
         (element) => element.name == envName,
         orElse: () => AppEnvironment.dev,
       );
+      _isLoaded = true;
     } catch (e) {
       // .env file not found - continue with defaults
       currentEnvironment = AppEnvironment.dev;
+      _isLoaded = false;
     }
   }
 
-  static String get apiBaseUrl =>
-      dotenv.maybeGet('API_BASE_URL') ?? 'https://api.example.com';
+  static String get apiBaseUrl {
+    if (_isLoaded) {
+      return dotenv.maybeGet('API_BASE_URL') ??
+          'http://10.198.119.147:3000/api';
+    }
+    // For physical device: use computer's IP address + /api prefix
+    // For emulator: use 10.0.2.2 instead
+    return 'http://10.198.119.147:3000/api';
+  }
 }

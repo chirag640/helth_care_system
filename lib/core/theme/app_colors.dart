@@ -92,6 +92,8 @@ class AppColors {
   static const Color notificationIconBackground = Color(0xFFF0F5FF);
   static const Color notificationTimeText = Color(0xFF999999);
   static const Color notificationDivider = Color(0xFFE8EAEF);
+  static const Color notificationUnreadBackground = Color(0xFFF0F5FF);
+  static const Color notificationBorder = Color(0xFFE8EAEF);
 
   // Profile screen specific
   static const Color profileHeaderBackground = Color(0xFF4D7FFF);

@@ -1,25 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/routing/app_router.dart';
+import '../../../auth/controller/auth_controller.dart';
 
-class SplashPage extends StatefulWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   void initState() {
     super.initState();
-    _navigateToOnboarding();
+    _checkAuthAndNavigate();
   }
 
-  Future<void> _navigateToOnboarding() async {
+  Future<void> _checkAuthAndNavigate() async {
+    // Show splash for minimum 2 seconds
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/onboarding');
+
+    if (!mounted) return;
+
+    // Check if user is already authenticated
+    await ref.read(authControllerProvider.notifier).checkAuthStatus();
+    final isAuthenticated = ref.read(authControllerProvider).isAuthenticated;
+
+    if (!mounted) return;
+
+    if (isAuthenticated) {
+      // User is logged in, go to home
+      Navigator.pushReplacementNamed(context, AppRouter.home);
+    } else {
+      // User is not logged in, go to onboarding
+      Navigator.pushReplacementNamed(context, AppRouter.onboarding);
     }
   }
 

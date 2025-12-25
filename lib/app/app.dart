@@ -11,6 +11,7 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = AppRouter();
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Health Care System',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

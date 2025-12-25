@@ -1,171 +1,161 @@
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/logger.dart';
 
-/// Enhanced local storage with JSON serialization support
+/// Local storage wrapper for SharedPreferences
 class LocalStorage {
-  LocalStorage._();
+  LocalStorage._(this._prefs);
+
+  final SharedPreferences _prefs;
 
   static LocalStorage? _instance;
-  static SharedPreferences? _prefs;
 
+  /// Get LocalStorage instance
   static Future<LocalStorage> getInstance() async {
-    _instance ??= LocalStorage._();
-    _prefs ??= await SharedPreferences.getInstance();
+    if (_instance == null) {
+      final prefs = await SharedPreferences.getInstance();
+      _instance = LocalStorage._(prefs);
+      AppLogger.debug('LocalStorage initialized', 'LocalStorage');
+    }
     return _instance!;
   }
 
-  // ========== String operations ==========
-
+  /// Set string value
   Future<bool> setString(String key, String value) async {
-    return await _prefs!.setString(key, value);
+    try {
+      return await _prefs.setString(key, value);
+    } catch (e) {
+      AppLogger.error('Failed to set string', e, null, 'LocalStorage');
+      return false;
+    }
   }
 
+  /// Get string value
   String? getString(String key) {
-    return _prefs!.getString(key);
-  }
-
-  // ========== JSON operations ==========
-
-  /// Save any JSON-serializable object
-  Future<bool> setJson<T>(String key, Map<String, dynamic> value) async {
     try {
-      final jsonString = json.encode(value);
-      return await setString(key, jsonString);
+      return _prefs.getString(key);
     } catch (e) {
-      return false;
-    }
-  }
-
-  /// Read and parse JSON object
-  Map<String, dynamic>? getJson(String key) {
-    try {
-      final jsonString = getString(key);
-      if (jsonString == null) return null;
-      return json.decode(jsonString) as Map<String, dynamic>;
-    } catch (e) {
+      AppLogger.error('Failed to get string', e, null, 'LocalStorage');
       return null;
     }
   }
 
-  /// Save list of JSON objects
-  Future<bool> setJsonList(String key, List<Map<String, dynamic>> value) async {
-    try {
-      final jsonString = json.encode(value);
-      return await setString(key, jsonString);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Read list of JSON objects
-  List<Map<String, dynamic>>? getJsonList(String key) {
-    try {
-      final jsonString = getString(key);
-      if (jsonString == null) return null;
-      final decoded = json.decode(jsonString);
-      return (decoded as List).cast<Map<String, dynamic>>();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // ========== Int operations ==========
-
+  /// Set int value
   Future<bool> setInt(String key, int value) async {
-    return await _prefs!.setInt(key, value);
-  }
-
-  int? getInt(String key) {
-    return _prefs!.getInt(key);
-  }
-
-  // ========== Bool operations ==========
-
-  Future<bool> setBool(String key, bool value) async {
-    return await _prefs!.setBool(key, value);
-  }
-
-  bool? getBool(String key) {
-    return _prefs!.getBool(key);
-  }
-
-  // ========== Double operations ==========
-
-  Future<bool> setDouble(String key, double value) async {
-    return await _prefs!.setDouble(key, value);
-  }
-
-  double? getDouble(String key) {
-    return _prefs!.getDouble(key);
-  }
-
-  // ========== List operations ==========
-
-  Future<bool> setStringList(String key, List<String> value) async {
-    return await _prefs!.setStringList(key, value);
-  }
-
-  List<String>? getStringList(String key) {
-    return _prefs!.getStringList(key);
-  }
-
-  // ========== Utility operations ==========
-
-  Future<bool> remove(String key) async {
-    return await _prefs!.remove(key);
-  }
-
-  Future<bool> clear() async {
-    return await _prefs!.clear();
-  }
-
-  bool containsKey(String key) {
-    return _prefs!.containsKey(key);
-  }
-
-  Set<String> getKeys() {
-    return _prefs!.getKeys();
-  }
-
-  /// Get approximate storage size in bytes (rough estimate)
-  int getApproximateSize() {
-    int totalSize = 0;
-    for (final key in getKeys()) {
-      final value = _prefs!.get(key);
-      if (value is String) {
-        totalSize += value.length * 2; // UTF-16 encoding
-      } else if (value is int) {
-        totalSize += 8;
-      } else if (value is double) {
-        totalSize += 8;
-      } else if (value is bool) {
-        totalSize += 1;
-      } else if (value is List<String>) {
-        for (final item in value) {
-          totalSize += item.length * 2;
-        }
-      }
+    try {
+      return await _prefs.setInt(key, value);
+    } catch (e) {
+      AppLogger.error('Failed to set int', e, null, 'LocalStorage');
+      return false;
     }
-    return totalSize;
   }
 
-  /// Clean up old entries based on timestamp keys
-  Future<void> cleanupOldEntries({
-    required String prefix,
-    required Duration maxAge,
-  }) async {
-    final now = DateTime.now();
-    final keys = getKeys().where((k) => k.startsWith(prefix));
+  /// Get int value
+  int? getInt(String key) {
+    try {
+      return _prefs.getInt(key);
+    } catch (e) {
+      AppLogger.error('Failed to get int', e, null, 'LocalStorage');
+      return null;
+    }
+  }
 
-    for (final key in keys) {
-      final timestamp = getInt('${key}_timestamp');
-      if (timestamp != null) {
-        final savedTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
-        if (now.difference(savedTime) > maxAge) {
-          await remove(key);
-          await remove('${key}_timestamp');
-        }
-      }
+  /// Set bool value
+  Future<bool> setBool(String key, bool value) async {
+    try {
+      return await _prefs.setBool(key, value);
+    } catch (e) {
+      AppLogger.error('Failed to set bool', e, null, 'LocalStorage');
+      return false;
+    }
+  }
+
+  /// Get bool value
+  bool? getBool(String key) {
+    try {
+      return _prefs.getBool(key);
+    } catch (e) {
+      AppLogger.error('Failed to get bool', e, null, 'LocalStorage');
+      return null;
+    }
+  }
+
+  /// Set double value
+  Future<bool> setDouble(String key, double value) async {
+    try {
+      return await _prefs.setDouble(key, value);
+    } catch (e) {
+      AppLogger.error('Failed to set double', e, null, 'LocalStorage');
+      return false;
+    }
+  }
+
+  /// Get double value
+  double? getDouble(String key) {
+    try {
+      return _prefs.getDouble(key);
+    } catch (e) {
+      AppLogger.error('Failed to get double', e, null, 'LocalStorage');
+      return null;
+    }
+  }
+
+  /// Set string list value
+  Future<bool> setStringList(String key, List<String> value) async {
+    try {
+      return await _prefs.setStringList(key, value);
+    } catch (e) {
+      AppLogger.error('Failed to set string list', e, null, 'LocalStorage');
+      return false;
+    }
+  }
+
+  /// Get string list value
+  List<String>? getStringList(String key) {
+    try {
+      return _prefs.getStringList(key);
+    } catch (e) {
+      AppLogger.error('Failed to get string list', e, null, 'LocalStorage');
+      return null;
+    }
+  }
+
+  /// Remove key
+  Future<bool> remove(String key) async {
+    try {
+      return await _prefs.remove(key);
+    } catch (e) {
+      AppLogger.error('Failed to remove key', e, null, 'LocalStorage');
+      return false;
+    }
+  }
+
+  /// Clear all data
+  Future<bool> clear() async {
+    try {
+      return await _prefs.clear();
+    } catch (e) {
+      AppLogger.error('Failed to clear storage', e, null, 'LocalStorage');
+      return false;
+    }
+  }
+
+  /// Check if key exists
+  bool containsKey(String key) {
+    try {
+      return _prefs.containsKey(key);
+    } catch (e) {
+      AppLogger.error('Failed to check key', e, null, 'LocalStorage');
+      return false;
+    }
+  }
+
+  /// Get all keys
+  Set<String> getKeys() {
+    try {
+      return _prefs.getKeys();
+    } catch (e) {
+      AppLogger.error('Failed to get keys', e, null, 'LocalStorage');
+      return {};
     }
   }
 }

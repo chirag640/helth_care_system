@@ -6,6 +6,7 @@ import '../../features/onboarding/presentation/pages/welcome_page.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/auth/presentation/pages/sign_up_page.dart';
 import '../../features/auth/presentation/pages/verify_code_page.dart';
+import '../../features/auth/presentation/pages/verify_registration_otp_page.dart';
 import '../../features/auth/presentation/pages/new_password_page.dart';
 import '../../features/auth/presentation/pages/complete_profile_page.dart';
 import '../../features/auth/presentation/pages/location_permission_page.dart';
@@ -41,6 +42,7 @@ class AppRouter {
   static const signIn = '/sign-in';
   static const signUp = '/sign-up';
   static const verifyCode = '/verify-code';
+  static const verifyOtp = '/verify-otp';
   static const newPassword = '/new-password';
   static const completeProfile = '/complete-profile';
   static const locationPermission = '/location-permission';
@@ -80,6 +82,10 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SignUpPage());
       case verifyCode:
         return MaterialPageRoute(builder: (_) => const VerifyCodePage());
+      case verifyOtp:
+        final email = settings.arguments as String;
+        return MaterialPageRoute(
+            builder: (_) => VerifyRegistrationOtpPage(email: email));
       case newPassword:
         return MaterialPageRoute(builder: (_) => const NewPasswordPage());
       case completeProfile:

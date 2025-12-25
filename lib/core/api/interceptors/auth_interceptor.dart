@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 
+import '../../config/env_loader.dart';
 import '../../storage/local_storage.dart';
 import '../../storage/secure_storage.dart';
 import '../../constants/app_constants.dart';
@@ -109,13 +110,20 @@ class AuthInterceptor extends Interceptor {
       // Call your refresh token API endpoint
       final dio = Dio();
       final response = await dio.post(
-        '${AppConstants.baseUrl}/auth/refresh',
-        data: {'refresh_token': refreshToken},
+        '${EnvLoader.apiBaseUrl}/auth/refresh',
+        data: {'refreshToken': refreshToken},
       );
 
       if (response.statusCode == 200) {
-        final newAccessToken = response.data['access_token'] as String?;
-        final newRefreshToken = response.data['refresh_token'] as String?;
+        // Extract data from wrapped response if needed
+        var responseData = response.data;
+        if (responseData is Map<String, dynamic> &&
+            responseData.containsKey('data')) {
+          responseData = responseData['data'] as Map<String, dynamic>;
+        }
+
+        final newAccessToken = responseData['accessToken'] as String?;
+        final newRefreshToken = responseData['refreshToken'] as String?;
 
         if (newAccessToken != null) {
           // Store new tokens

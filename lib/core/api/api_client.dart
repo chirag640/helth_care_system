@@ -15,6 +15,9 @@ class ApiClient {
   final AppConfig config;
   late final Dio dio;
 
+  // Completer to track auth interceptor initialization
+  bool _authInterceptorInitialized = false;
+
   void _initializeDio() {
     dio = Dio(
       BaseOptions(
@@ -30,13 +33,32 @@ class ApiClient {
     );
 
     // Add interceptors in order
-    LocalStorage.getInstance().then((storage) {
-      dio.interceptors.addAll([
-        AuthInterceptor(storage, SecureStorage.instance),
-        RetryInterceptor(),
-        LoggerInterceptor(),
-      ]);
-    });
+    // Note: AuthInterceptor requires async initialization, added separately
+    dio.interceptors.addAll([
+      RetryInterceptor(dio: dio),
+      LoggerInterceptor(),
+    ]);
+
+    // Initialize auth interceptor asynchronously
+    _initializeAuthInterceptor();
+  }
+
+  Future<void> _initializeAuthInterceptor() async {
+    final storage = await LocalStorage.getInstance();
+    // Insert auth interceptor at the beginning (before retry and logger)
+    dio.interceptors
+        .insert(0, AuthInterceptor(storage, SecureStorage.instance));
+    _authInterceptorInitialized = true;
+  }
+
+  /// Ensure auth interceptor is initialized before making requests
+  Future<void> ensureInitialized() async {
+    // Wait a bit for async initialization if not ready
+    int attempts = 0;
+    while (!_authInterceptorInitialized && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 50));
+      attempts++;
+    }
   }
 
   /// Generic GET request
@@ -45,6 +67,7 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
+    await ensureInitialized();
     return dio.get(
       path,
       queryParameters: queryParameters,
@@ -59,6 +82,7 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
+    await ensureInitialized();
     return dio.post(
       path,
       data: data,
@@ -74,7 +98,24 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
+    await ensureInitialized();
     return dio.put(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: options,
+    );
+  }
+
+  /// Generic PATCH request
+  Future<Response> patch(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    await ensureInitialized();
+    return dio.patch(
       path,
       data: data,
       queryParameters: queryParameters,
@@ -89,6 +130,7 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
+    await ensureInitialized();
     return dio.delete(
       path,
       data: data,

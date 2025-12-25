@@ -1,179 +1,401 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/material.dart';
 
-/// Notification data model
-class NotificationData {
-  final String id;
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String message;
-  final String time;
-  final DateTime timestamp;
-  final bool isRead;
-
-  NotificationData({
-    required this.id,
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.message,
-    required this.time,
-    required this.timestamp,
-    this.isRead = false,
-  });
-}
+import '../../../core/providers/app_providers.dart';
+import '../../../core/utils/logger.dart';
+import '../models/models.dart';
+import '../services/notification_api_service.dart';
 
 /// Notification state
 class NotificationState {
-  final List<NotificationData> todayNotifications;
-  final List<NotificationData> pastNotifications;
-  final List<NotificationData> lastWeekNotifications;
-  final bool isLoading;
-  final String? error;
-
-  NotificationState({
+  const NotificationState({
+    this.notifications = const [],
     this.todayNotifications = const [],
-    this.pastNotifications = const [],
-    this.lastWeekNotifications = const [],
+    this.thisWeekNotifications = const [],
+    this.olderNotifications = const [],
+    this.unreadCount = 0,
+    this.preferences,
     this.isLoading = false,
+    this.isLoadingMore = false,
+    this.isUpdating = false,
     this.error,
+    this.currentPage = 1,
+    this.hasMore = true,
   });
 
+  final List<NotificationModel> notifications;
+  final List<NotificationModel> todayNotifications;
+  final List<NotificationModel> thisWeekNotifications;
+  final List<NotificationModel> olderNotifications;
+  final int unreadCount;
+  final NotificationPreferences? preferences;
+  final bool isLoading;
+  final bool isLoadingMore;
+  final bool isUpdating;
+  final String? error;
+  final int currentPage;
+  final bool hasMore;
+
   NotificationState copyWith({
-    List<NotificationData>? todayNotifications,
-    List<NotificationData>? pastNotifications,
-    List<NotificationData>? lastWeekNotifications,
+    List<NotificationModel>? notifications,
+    List<NotificationModel>? todayNotifications,
+    List<NotificationModel>? thisWeekNotifications,
+    List<NotificationModel>? olderNotifications,
+    int? unreadCount,
+    NotificationPreferences? preferences,
     bool? isLoading,
+    bool? isLoadingMore,
+    bool? isUpdating,
     String? error,
+    int? currentPage,
+    bool? hasMore,
   }) {
     return NotificationState(
+      notifications: notifications ?? this.notifications,
       todayNotifications: todayNotifications ?? this.todayNotifications,
-      pastNotifications: pastNotifications ?? this.pastNotifications,
-      lastWeekNotifications:
-          lastWeekNotifications ?? this.lastWeekNotifications,
+      thisWeekNotifications:
+          thisWeekNotifications ?? this.thisWeekNotifications,
+      olderNotifications: olderNotifications ?? this.olderNotifications,
+      unreadCount: unreadCount ?? this.unreadCount,
+      preferences: preferences ?? this.preferences,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      isUpdating: isUpdating ?? this.isUpdating,
+      error: error,
+      currentPage: currentPage ?? this.currentPage,
+      hasMore: hasMore ?? this.hasMore,
     );
   }
 
-  int get totalCount =>
-      todayNotifications.length +
-      pastNotifications.length +
-      lastWeekNotifications.length;
+  /// Get total notification count
+  int get totalCount => notifications.length;
+
+  /// Check if there are any unread notifications
+  bool get hasUnread => unreadCount > 0;
 }
 
-/// Notification controller
+/// Notification controller with real API integration
 class NotificationController extends StateNotifier<NotificationState> {
-  NotificationController() : super(NotificationState()) {
-    _loadNotifications();
+  NotificationController(this._service) : super(const NotificationState()) {
+    loadNotifications();
   }
 
-  /// Load notifications (dummy data)
-  Future<void> _loadNotifications() async {
-    state = state.copyWith(isLoading: true);
+  final NotificationApiService _service;
 
-    await Future.delayed(const Duration(milliseconds: 500));
+  /// Load notifications
+  Future<void> loadNotifications() async {
+    if (state.isLoading) return;
 
-    final now = DateTime.now();
+    state = state.copyWith(isLoading: true, error: null);
 
-    final todayNotifications = [
-      NotificationData(
-        id: '1',
-        icon: Icons.videocam_outlined,
-        iconColor: const Color(0xFF4D7FFF),
-        title: 'Video Call Appointment',
-        message:
-            "We'll send you a link to join the call at the booking details.",
-        time: '5m ago',
-        timestamp: now.subtract(const Duration(minutes: 5)),
-      ),
-      NotificationData(
-        id: '2',
-        icon: Icons.event_available_outlined,
-        iconColor: const Color(0xFF9C27B0),
-        title: 'Appointment with Dr. Robert',
-        message: 'Your appointment is confirmed.',
-        time: '21m ago',
-        timestamp: now.subtract(const Duration(minutes: 21)),
-      ),
-      NotificationData(
-        id: '3',
-        icon: Icons.calendar_today_outlined,
-        iconColor: const Color(0xFF4D7FFF),
-        title: 'Schedule Changed',
-        message:
-            'You have successfully changes your appointment with Dr. Joshua Doe.',
-        time: '8h ago',
-        timestamp: now.subtract(const Duration(hours: 8)),
-      ),
-      NotificationData(
-        id: '4',
-        icon: Icons.access_time_outlined,
-        iconColor: const Color(0xFF00BCD4),
-        title: 'Appointment with Dr. Lector',
-        message: 'Your appointment is 30min from now.',
-        time: '1w ago',
-        timestamp: now.subtract(const Duration(days: 7)),
-      ),
-    ];
+    try {
+      // Load notifications and unread count in parallel
+      final results = await Future.wait([
+        _service.getNotifications(page: 1, limit: 50),
+        _service.getUnreadCount(),
+      ]);
 
-    final pastNotifications = [
-      NotificationData(
-        id: '5',
-        icon: Icons.cancel_outlined,
-        iconColor: const Color(0xFFE53935),
-        title: 'Appointment Cancelled',
-        message:
-            'You cancelled your appointment with Dr. Floyd Miles. No funds will be returned to your account.',
-        time: '1d ago',
-        timestamp: now.subtract(const Duration(days: 1)),
-      ),
-      NotificationData(
-        id: '6',
-        icon: Icons.payment_outlined,
-        iconColor: const Color(0xFF4D7FFF),
-        title: 'New Paypal Added',
-        message: 'Your PayPal has been successfully linked with your account.',
-        time: '23w ago',
-        timestamp: now.subtract(const Duration(days: 161)),
-      ),
-    ];
+      final paginatedNotifications = results[0] as PaginatedNotifications;
+      final unreadCount = results[1] as UnreadCount;
 
-    state = state.copyWith(
-      todayNotifications: todayNotifications.sublist(0, 3),
-      pastNotifications: pastNotifications,
-      lastWeekNotifications: [todayNotifications[3]],
-      isLoading: false,
-    );
+      // Group notifications by date
+      final today = <NotificationModel>[];
+      final thisWeek = <NotificationModel>[];
+      final older = <NotificationModel>[];
+
+      for (final notification in paginatedNotifications.notifications) {
+        if (notification.isToday) {
+          today.add(notification);
+        } else if (notification.isThisWeek) {
+          thisWeek.add(notification);
+        } else {
+          older.add(notification);
+        }
+      }
+
+      state = state.copyWith(
+        notifications: paginatedNotifications.notifications,
+        todayNotifications: today,
+        thisWeekNotifications: thisWeek,
+        olderNotifications: older,
+        unreadCount: unreadCount.total,
+        isLoading: false,
+        currentPage: 1,
+        hasMore: paginatedNotifications.hasMore,
+      );
+    } on DioException catch (e) {
+      final errorMessage = _getErrorMessage(e);
+      AppLogger.error(
+          'Load notifications failed', e, null, 'NotificationController');
+      state = state.copyWith(
+        isLoading: false,
+        error: errorMessage,
+      );
+    } catch (e) {
+      AppLogger.error(
+          'Load notifications failed', e, null, 'NotificationController');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to load notifications',
+      );
+    }
   }
 
-  /// Mark notification as read
-  Future<void> markAsRead(String notificationId) async {
-    // Dummy implementation
-    await Future.delayed(const Duration(milliseconds: 200));
-  }
+  /// Load more notifications (pagination)
+  Future<void> loadMore() async {
+    if (state.isLoadingMore || !state.hasMore) return;
 
-  /// Clear all notifications
-  Future<void> clearAll() async {
-    state = state.copyWith(isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 500));
-    state = state.copyWith(
-      todayNotifications: [],
-      pastNotifications: [],
-      lastWeekNotifications: [],
-      isLoading: false,
-    );
+    state = state.copyWith(isLoadingMore: true);
+
+    try {
+      final nextPage = state.currentPage + 1;
+      final result = await _service.getNotifications(page: nextPage, limit: 20);
+
+      final allNotifications = [
+        ...state.notifications,
+        ...result.notifications
+      ];
+
+      // Regroup
+      final today = <NotificationModel>[];
+      final thisWeek = <NotificationModel>[];
+      final older = <NotificationModel>[];
+
+      for (final notification in allNotifications) {
+        if (notification.isToday) {
+          today.add(notification);
+        } else if (notification.isThisWeek) {
+          thisWeek.add(notification);
+        } else {
+          older.add(notification);
+        }
+      }
+
+      state = state.copyWith(
+        notifications: allNotifications,
+        todayNotifications: today,
+        thisWeekNotifications: thisWeek,
+        olderNotifications: older,
+        isLoadingMore: false,
+        currentPage: nextPage,
+        hasMore: result.hasMore,
+      );
+    } on DioException catch (e) {
+      AppLogger.error(
+          'Load more notifications failed', e, null, 'NotificationController');
+      state = state.copyWith(isLoadingMore: false);
+    }
   }
 
   /// Refresh notifications
   Future<void> refresh() async {
-    await _loadNotifications();
+    state = state.copyWith(currentPage: 1, hasMore: true);
+    await loadNotifications();
+  }
+
+  /// Mark notification as read
+  Future<bool> markAsRead(String id) async {
+    try {
+      await _service.markAsRead(id);
+
+      // Update local state
+      final updated = state.notifications.map((n) {
+        return n.id == id ? n.copyWith(isRead: true) : n;
+      }).toList();
+
+      // Regroup
+      final today = updated.where((n) => n.isToday).toList();
+      final thisWeek = updated.where((n) => n.isThisWeek).toList();
+      final older = updated.where((n) => !n.isToday && !n.isThisWeek).toList();
+
+      state = state.copyWith(
+        notifications: updated,
+        todayNotifications: today,
+        thisWeekNotifications: thisWeek,
+        olderNotifications: older,
+        unreadCount: state.unreadCount > 0 ? state.unreadCount - 1 : 0,
+      );
+
+      return true;
+    } on DioException catch (e) {
+      AppLogger.error('Mark as read failed', e, null, 'NotificationController');
+      return false;
+    }
+  }
+
+  /// Mark all notifications as read
+  Future<bool> markAllAsRead() async {
+    state = state.copyWith(isUpdating: true);
+
+    try {
+      await _service.markAllAsRead();
+
+      // Update local state
+      final updated = state.notifications.map((n) {
+        return n.copyWith(isRead: true);
+      }).toList();
+
+      // Regroup
+      final today = updated.where((n) => n.isToday).toList();
+      final thisWeek = updated.where((n) => n.isThisWeek).toList();
+      final older = updated.where((n) => !n.isToday && !n.isThisWeek).toList();
+
+      state = state.copyWith(
+        notifications: updated,
+        todayNotifications: today,
+        thisWeekNotifications: thisWeek,
+        olderNotifications: older,
+        unreadCount: 0,
+        isUpdating: false,
+      );
+
+      return true;
+    } on DioException catch (e) {
+      AppLogger.error(
+          'Mark all as read failed', e, null, 'NotificationController');
+      state = state.copyWith(isUpdating: false);
+      return false;
+    }
+  }
+
+  /// Delete a notification
+  Future<bool> deleteNotification(String id) async {
+    try {
+      await _service.deleteNotification(id);
+
+      final wasUnread =
+          state.notifications.firstWhere((n) => n.id == id).isRead == false;
+
+      // Update local state
+      final updated = state.notifications.where((n) => n.id != id).toList();
+
+      // Regroup
+      final today = updated.where((n) => n.isToday).toList();
+      final thisWeek = updated.where((n) => n.isThisWeek).toList();
+      final older = updated.where((n) => !n.isToday && !n.isThisWeek).toList();
+
+      state = state.copyWith(
+        notifications: updated,
+        todayNotifications: today,
+        thisWeekNotifications: thisWeek,
+        olderNotifications: older,
+        unreadCount: wasUnread && state.unreadCount > 0
+            ? state.unreadCount - 1
+            : state.unreadCount,
+      );
+
+      return true;
+    } on DioException catch (e) {
+      AppLogger.error(
+          'Delete notification failed', e, null, 'NotificationController');
+      return false;
+    }
+  }
+
+  /// Clear all notifications
+  Future<bool> clearAll() async {
+    state = state.copyWith(isUpdating: true);
+
+    try {
+      await _service.deleteAllNotifications();
+
+      state = state.copyWith(
+        notifications: [],
+        todayNotifications: [],
+        thisWeekNotifications: [],
+        olderNotifications: [],
+        unreadCount: 0,
+        isUpdating: false,
+      );
+
+      return true;
+    } on DioException catch (e) {
+      AppLogger.error(
+          'Clear all notifications failed', e, null, 'NotificationController');
+      state = state.copyWith(isUpdating: false);
+      return false;
+    }
+  }
+
+  /// Load notification preferences
+  Future<void> loadPreferences() async {
+    try {
+      final preferences = await _service.getPreferences();
+      state = state.copyWith(preferences: preferences);
+    } on DioException catch (e) {
+      AppLogger.error(
+          'Load preferences failed', e, null, 'NotificationController');
+    }
+  }
+
+  /// Update notification preferences
+  Future<bool> updatePreferences(NotificationPreferences preferences) async {
+    state = state.copyWith(isUpdating: true);
+
+    try {
+      final updated = await _service.updatePreferences(preferences);
+      state = state.copyWith(
+        preferences: updated,
+        isUpdating: false,
+      );
+      return true;
+    } on DioException catch (e) {
+      AppLogger.error(
+          'Update preferences failed', e, null, 'NotificationController');
+      state = state.copyWith(isUpdating: false);
+      return false;
+    }
+  }
+
+  /// Refresh unread count
+  Future<void> refreshUnreadCount() async {
+    try {
+      final count = await _service.getUnreadCount();
+      state = state.copyWith(unreadCount: count.total);
+    } on DioException catch (e) {
+      AppLogger.error(
+          'Refresh unread count failed', e, null, 'NotificationController');
+    }
+  }
+
+  /// Clear error
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
+
+  String _getErrorMessage(DioException e) {
+    if (e.response?.data != null && e.response!.data is Map) {
+      final data = e.response!.data as Map;
+      return data['message']?.toString() ?? 'An error occurred';
+    }
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Connection timed out. Please try again.';
+      case DioExceptionType.connectionError:
+        return 'No internet connection.';
+      default:
+        return 'An error occurred. Please try again.';
+    }
   }
 }
 
 /// Notification controller provider
 final notificationControllerProvider =
     StateNotifierProvider<NotificationController, NotificationState>((ref) {
-  return NotificationController();
+  final service = ref.watch(notificationApiServiceProvider);
+  return NotificationController(service);
+});
+
+/// Unread count provider (shortcut)
+final unreadNotificationCountProvider = Provider<int>((ref) {
+  return ref.watch(notificationControllerProvider).unreadCount;
+});
+
+/// Notification preferences provider
+final notificationPreferencesProvider =
+    FutureProvider<NotificationPreferences>((ref) async {
+  final service = ref.watch(notificationApiServiceProvider);
+  return service.getPreferences();
 });
