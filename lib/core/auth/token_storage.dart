@@ -150,4 +150,54 @@ class TokenStorage {
       rethrow;
     }
   }
+
+  // ============== Onboarding & Permission Flags ==============
+
+  /// Check if user has completed onboarding
+  bool isOnboardingComplete() {
+    return _localStorage?.getBool('onboarding_complete') ?? false;
+  }
+
+  /// Mark onboarding as complete
+  Future<void> setOnboardingComplete(bool value) async {
+    await _localStorage?.setBool('onboarding_complete', value);
+  }
+
+  /// Check if permissions have been requested
+  bool arePermissionsRequested() {
+    return _localStorage?.getBool('permissions_requested') ?? false;
+  }
+
+  /// Mark permissions as requested
+  Future<void> setPermissionsRequested(bool value) async {
+    await _localStorage?.setBool('permissions_requested', value);
+  }
+
+  /// Check if profile setup is complete (for new users)
+  bool isProfileSetupComplete() {
+    return _localStorage?.getBool('profile_setup_complete') ?? false;
+  }
+
+  /// Mark profile setup as complete
+  Future<void> setProfileSetupComplete(bool value) async {
+    await _localStorage?.setBool('profile_setup_complete', value);
+  }
+
+  /// Check if this is first login (new user)
+  bool isFirstLogin() {
+    return _localStorage?.getBool('is_first_login') ?? true;
+  }
+
+  /// Mark first login complete
+  Future<void> setFirstLoginComplete() async {
+    await _localStorage?.setBool('is_first_login', false);
+  }
+
+  /// Clear all onboarding/setup flags (for testing or logout)
+  Future<void> clearSetupFlags() async {
+    await _localStorage?.remove('onboarding_complete');
+    await _localStorage?.remove('permissions_requested');
+    await _localStorage?.remove('profile_setup_complete');
+    await _localStorage?.remove('is_first_login');
+  }
 }

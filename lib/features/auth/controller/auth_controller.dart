@@ -76,10 +76,10 @@ class AuthController extends StateNotifier<AuthState> {
   final TokenStorage _tokenStorage;
 
   /// Check if user is already authenticated on app start
-  /// Checks local storage first, then fetches patientId if missing
+  /// Validates the stored token by making an API call
   Future<void> checkAuthStatus() async {
     if (_tokenStorage.isAuthenticated()) {
-      // User has token stored, restore the session locally
+      // User has token stored, verify it's still valid
       final userId = _tokenStorage.getUserId();
       final email = _tokenStorage.getUserEmail();
       final roleStr = _tokenStorage.getUserRole();
@@ -91,33 +91,35 @@ class AuthController extends StateNotifier<AuthState> {
           orElse: () => UserRole.patient,
         );
 
-        // If patientId is not stored, fetch it from the API
-        if ((patientId == null || patientId.isEmpty) &&
-            role == UserRole.patient) {
-          try {
-            final currentUser = await _authService.getCurrentUser();
+        // Validate token by making an API call
+        try {
+          final currentUser = await _authService.getCurrentUser();
+          // Token is valid, update patientId if needed
+          if (currentUser.patientId != null &&
+              currentUser.patientId!.isNotEmpty) {
             patientId = currentUser.patientId;
-            if (patientId != null && patientId.isNotEmpty) {
-              await _tokenStorage.savePatientId(patientId);
-              AppLogger.info(
-                  'PatientId fetched and saved: $patientId', 'AuthController');
-            }
-          } catch (e) {
-            AppLogger.warning(
-                'Failed to fetch patientId on restore: $e', 'AuthController');
+            await _tokenStorage.savePatientId(patientId!);
           }
+
+          final user = UserModel(
+            userId: userId,
+            email: email,
+            role: role,
+            patientId: patientId,
+          );
+
+          state = state.toAuthenticated(user);
+          AppLogger.info(
+              'Auth restored from storaage: $email', 'AuthController');
+          return;
+        } catch (e) {
+          // Token validation failed - tokens are invalid
+          AppLogger.warning(
+              'Token validation failed, clearing tokens: $e', 'AuthController');
+          await _tokenStorage.clearTokens();
+          state = AuthState.initial;
+          return;
         }
-
-        final user = UserModel(
-          userId: userId,
-          email: email,
-          role: role,
-          patientId: patientId,
-        );
-
-        state = state.toAuthenticated(user);
-        AppLogger.info('Auth restored from storage: $email', 'AuthController');
-        return;
       }
 
       // Invalid stored data, clear it
@@ -431,6 +433,14 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.toLoggedOut();
       AppLogger.info('User signed out', 'AuthController');
     }
+  }
+
+  /// Force logout - called when token refresh fails
+  /// This doesn't call the logout API since tokens are already invalid
+  void forceLogout() {
+    state = state.toLoggedOut();
+    AppLogger.info(
+        'User force logged out due to auth failure', 'AuthController');
   }
 
   /// Clear any error messages

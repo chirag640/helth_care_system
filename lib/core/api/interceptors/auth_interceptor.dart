@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 
+import '../../auth/auth_event_bus.dart';
 import '../../config/env_loader.dart';
 import '../../storage/local_storage.dart';
 import '../../storage/secure_storage.dart';
@@ -146,6 +147,16 @@ class AuthInterceptor extends Interceptor {
       // Clear tokens on refresh failure
       await _storage.remove(AppConstants.keyAccessToken);
       await _secureStorage.delete(AppConstants.keyRefreshToken);
+
+      // Also clear user data to ensure clean logout
+      await _storage.remove(AppConstants.keyUserId);
+      await _storage.remove('user_email');
+      await _storage.remove('user_role');
+      await _storage.remove('session_id');
+      await _storage.remove('patient_id');
+
+      // Emit event to notify the app that authentication failed
+      AuthEventBus.instance.emit(AuthEvent.tokenRefreshFailed);
 
       return null;
     }

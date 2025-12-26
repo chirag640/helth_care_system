@@ -277,6 +277,34 @@ class DispenseRequest extends Equatable {
       ];
 }
 
+/// Prescriber information model
+class PrescriberInfo extends Equatable {
+  const PrescriberInfo({
+    this.id,
+    this.name,
+    this.specialty,
+    this.phone,
+  });
+
+  final String? id;
+  final String? name;
+  final String? specialty;
+  final String? phone;
+
+  factory PrescriberInfo.fromJson(Map<String, dynamic> json) {
+    return PrescriberInfo(
+      id: json['_id'] as String? ?? json['id'] as String?,
+      name: json['name'] as String? ?? json['fullName'] as String?,
+      specialty:
+          json['specialty'] as String? ?? json['specialization'] as String?,
+      phone: json['phone'] as String?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [id, name, specialty, phone];
+}
+
 /// Main prescription model
 class PrescriptionModel extends Equatable {
   const PrescriptionModel({
@@ -287,13 +315,17 @@ class PrescriptionModel extends Equatable {
     this.patientGuid,
     this.prescriberId,
     this.prescriberName,
+    this.prescriber,
     required this.medicationName,
+    this.medicationCode,
     this.genericName,
     this.form,
     this.strength,
     this.dosageInstructions = const [],
     this.courseOfTherapy,
+    this.reasonCode,
     this.reasonText,
+    this.notes,
     this.dispenseRequest,
     this.dispensedCount = 0,
     this.refillsRemaining = 0,
@@ -301,24 +333,30 @@ class PrescriptionModel extends Equatable {
     this.isControlledSubstance = false,
     this.interactions = const [],
     this.authoredOn,
+    this.effectivePeriodStart,
+    this.effectivePeriodEnd,
     this.createdAt,
     this.updatedAt,
   });
 
   final String id;
-  final String prescriptionNumber;
+  final String? prescriptionNumber;
   final PrescriptionStatus status;
   final String? patientId;
   final String? patientGuid;
   final String? prescriberId;
   final String? prescriberName;
+  final PrescriberInfo? prescriber;
   final String medicationName;
+  final String? medicationCode;
   final String? genericName;
   final MedicationForm? form;
   final String? strength;
   final List<DosageInstruction> dosageInstructions;
   final CourseOfTherapy? courseOfTherapy;
+  final String? reasonCode;
   final String? reasonText;
+  final String? notes;
   final DispenseRequest? dispenseRequest;
   final int dispensedCount;
   final int refillsRemaining;
@@ -326,20 +364,49 @@ class PrescriptionModel extends Equatable {
   final bool isControlledSubstance;
   final List<String> interactions;
   final DateTime? authoredOn;
+  final DateTime? effectivePeriodStart;
+  final DateTime? effectivePeriodEnd;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   factory PrescriptionModel.fromJson(Map<String, dynamic> json) {
+    // Handle populated prescriber object or string ID
+    String? prescriberId;
+    String? prescriberName;
+    PrescriberInfo? prescriberInfo;
+    final prescriberRaw = json['prescriber'];
+    if (prescriberRaw is Map<String, dynamic>) {
+      prescriberId =
+          prescriberRaw['_id'] as String? ?? prescriberRaw['id'] as String?;
+      prescriberName = prescriberRaw['name'] as String? ??
+          prescriberRaw['fullName'] as String?;
+      prescriberInfo = PrescriberInfo.fromJson(prescriberRaw);
+    } else if (prescriberRaw is String) {
+      prescriberId = prescriberRaw;
+      prescriberName = json['prescriberName'] as String?;
+    }
+
+    // Handle populated patient object or string ID
+    String? patientId;
+    final patientRaw = json['patient'];
+    if (patientRaw is Map<String, dynamic>) {
+      patientId = patientRaw['_id'] as String? ?? patientRaw['id'] as String?;
+    } else if (patientRaw is String) {
+      patientId = patientRaw;
+    }
+
     return PrescriptionModel(
       id: json['_id'] as String? ?? json['id'] as String? ?? '',
-      prescriptionNumber: json['prescriptionNumber'] as String? ?? '',
+      prescriptionNumber: json['prescriptionNumber'] as String?,
       status:
           PrescriptionStatus.fromString(json['status'] as String? ?? 'draft'),
-      patientId: json['patient'] as String?,
+      patientId: patientId,
       patientGuid: json['patientGuid'] as String?,
-      prescriberId: json['prescriber'] as String?,
-      prescriberName: json['prescriberName'] as String?,
+      prescriberId: prescriberId,
+      prescriberName: prescriberName ?? json['prescriberName'] as String?,
+      prescriber: prescriberInfo,
       medicationName: json['medicationName'] as String? ?? '',
+      medicationCode: json['medicationCode'] as String?,
       genericName: json['genericName'] as String?,
       form: json['form'] != null
           ? MedicationForm.fromString(json['form'] as String)
@@ -353,7 +420,9 @@ class PrescriptionModel extends Equatable {
       courseOfTherapy: json['courseOfTherapy'] != null
           ? CourseOfTherapy.fromString(json['courseOfTherapy'] as String)
           : null,
+      reasonCode: json['reasonCode'] as String?,
       reasonText: json['reasonText'] as String?,
+      notes: json['notes'] as String?,
       dispenseRequest: json['dispenseRequest'] != null
           ? DispenseRequest.fromJson(
               json['dispenseRequest'] as Map<String, dynamic>)
@@ -369,6 +438,12 @@ class PrescriptionModel extends Equatable {
       authoredOn: json['authoredOn'] != null
           ? DateTime.tryParse(json['authoredOn'] as String)
           : null,
+      effectivePeriodStart: json['effectivePeriodStart'] != null
+          ? DateTime.tryParse(json['effectivePeriodStart'] as String)
+          : null,
+      effectivePeriodEnd: json['effectivePeriodEnd'] != null
+          ? DateTime.tryParse(json['effectivePeriodEnd'] as String)
+          : null,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String)
           : null,
@@ -381,19 +456,22 @@ class PrescriptionModel extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
-      'prescriptionNumber': prescriptionNumber,
+      if (prescriptionNumber != null) 'prescriptionNumber': prescriptionNumber,
       'status': status.value,
       if (patientId != null) 'patient': patientId,
       if (patientGuid != null) 'patientGuid': patientGuid,
       if (prescriberId != null) 'prescriber': prescriberId,
       if (prescriberName != null) 'prescriberName': prescriberName,
       'medicationName': medicationName,
+      if (medicationCode != null) 'medicationCode': medicationCode,
       if (genericName != null) 'genericName': genericName,
       if (form != null) 'form': form!.value,
       if (strength != null) 'strength': strength,
       'dosageInstruction': dosageInstructions.map((d) => d.toJson()).toList(),
       if (courseOfTherapy != null) 'courseOfTherapy': courseOfTherapy!.value,
+      if (reasonCode != null) 'reasonCode': reasonCode,
       if (reasonText != null) 'reasonText': reasonText,
+      if (notes != null) 'notes': notes,
       if (dispenseRequest != null) 'dispenseRequest': dispenseRequest!.toJson(),
       'dispensedCount': dispensedCount,
       'refillsRemaining': refillsRemaining,
@@ -401,6 +479,10 @@ class PrescriptionModel extends Equatable {
       'isControlledSubstance': isControlledSubstance,
       'interactions': interactions,
       if (authoredOn != null) 'authoredOn': authoredOn!.toIso8601String(),
+      if (effectivePeriodStart != null)
+        'effectivePeriodStart': effectivePeriodStart!.toIso8601String(),
+      if (effectivePeriodEnd != null)
+        'effectivePeriodEnd': effectivePeriodEnd!.toIso8601String(),
       if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
     };
@@ -414,13 +496,17 @@ class PrescriptionModel extends Equatable {
     String? patientGuid,
     String? prescriberId,
     String? prescriberName,
+    PrescriberInfo? prescriber,
     String? medicationName,
+    String? medicationCode,
     String? genericName,
     MedicationForm? form,
     String? strength,
     List<DosageInstruction>? dosageInstructions,
     CourseOfTherapy? courseOfTherapy,
+    String? reasonCode,
     String? reasonText,
+    String? notes,
     DispenseRequest? dispenseRequest,
     int? dispensedCount,
     int? refillsRemaining,
@@ -428,6 +514,8 @@ class PrescriptionModel extends Equatable {
     bool? isControlledSubstance,
     List<String>? interactions,
     DateTime? authoredOn,
+    DateTime? effectivePeriodStart,
+    DateTime? effectivePeriodEnd,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -439,13 +527,17 @@ class PrescriptionModel extends Equatable {
       patientGuid: patientGuid ?? this.patientGuid,
       prescriberId: prescriberId ?? this.prescriberId,
       prescriberName: prescriberName ?? this.prescriberName,
+      prescriber: prescriber ?? this.prescriber,
       medicationName: medicationName ?? this.medicationName,
+      medicationCode: medicationCode ?? this.medicationCode,
       genericName: genericName ?? this.genericName,
       form: form ?? this.form,
       strength: strength ?? this.strength,
       dosageInstructions: dosageInstructions ?? this.dosageInstructions,
       courseOfTherapy: courseOfTherapy ?? this.courseOfTherapy,
+      reasonCode: reasonCode ?? this.reasonCode,
       reasonText: reasonText ?? this.reasonText,
+      notes: notes ?? this.notes,
       dispenseRequest: dispenseRequest ?? this.dispenseRequest,
       dispensedCount: dispensedCount ?? this.dispensedCount,
       refillsRemaining: refillsRemaining ?? this.refillsRemaining,
@@ -454,6 +546,8 @@ class PrescriptionModel extends Equatable {
           isControlledSubstance ?? this.isControlledSubstance,
       interactions: interactions ?? this.interactions,
       authoredOn: authoredOn ?? this.authoredOn,
+      effectivePeriodStart: effectivePeriodStart ?? this.effectivePeriodStart,
+      effectivePeriodEnd: effectivePeriodEnd ?? this.effectivePeriodEnd,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -479,6 +573,9 @@ class PrescriptionModel extends Equatable {
   /// Check if prescription can be refilled
   bool get canRefill => refillsRemaining > 0 && !isExpired && status.isActive;
 
+  /// Check if can request refill (for UI)
+  bool get canRequestRefill => canRefill && status.isActive;
+
   @override
   List<Object?> get props => [
         id,
@@ -488,13 +585,17 @@ class PrescriptionModel extends Equatable {
         patientGuid,
         prescriberId,
         prescriberName,
+        prescriber,
         medicationName,
+        medicationCode,
         genericName,
         form,
         strength,
         dosageInstructions,
         courseOfTherapy,
+        reasonCode,
         reasonText,
+        notes,
         dispenseRequest,
         dispensedCount,
         refillsRemaining,
@@ -502,6 +603,8 @@ class PrescriptionModel extends Equatable {
         isControlledSubstance,
         interactions,
         authoredOn,
+        effectivePeriodStart,
+        effectivePeriodEnd,
         createdAt,
         updatedAt,
       ];

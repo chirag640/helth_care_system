@@ -666,10 +666,6 @@ class _ProfileDisplayData {
         genderIcon = Icons.transgender;
         genderDisplay = 'Other';
         break;
-      case Gender.preferNotToSay:
-        genderIcon = Icons.person;
-        genderDisplay = 'Prefer not to say';
-        break;
       case null:
         genderIcon = Icons.person;
         genderDisplay = 'N/A';
@@ -677,8 +673,10 @@ class _ProfileDisplayData {
     }
 
     return _ProfileDisplayData(
-      fullName: patient.fullName,
-      phoneNumber: patient.phoneNumber ?? 'Not set',
+      // Backend uses fullName
+      fullName: patient.fullName ?? 'User',
+      // Backend uses phone, not phoneNumber
+      phoneNumber: patient.phone ?? 'Not set',
       userId: patient.id,
       gender: genderDisplay,
       genderIcon: genderIcon,

@@ -1,14 +1,17 @@
 import 'package:equatable/equatable.dart';
 
-/// Appointment status enum matching backend
+/// Appointment status enum matching backend FHIR-compliant statuses
 enum AppointmentStatus {
-  scheduled('Scheduled'),
-  confirmed('Confirmed'),
-  inProgress('InProgress'),
-  completed('Completed'),
-  cancelled('Cancelled'),
-  noShow('NoShow'),
-  rescheduled('Rescheduled');
+  proposed('proposed'),
+  pending('pending'),
+  booked('booked'),
+  arrived('arrived'),
+  fulfilled('fulfilled'),
+  cancelled('cancelled'),
+  noShow('noshow'),
+  enteredInError('entered-in-error'),
+  checkedIn('checked-in'),
+  waitlist('waitlist');
 
   const AppointmentStatus(this.value);
   final String value;
@@ -16,45 +19,57 @@ enum AppointmentStatus {
   static AppointmentStatus fromString(String value) {
     return AppointmentStatus.values.firstWhere(
       (status) => status.value.toLowerCase() == value.toLowerCase(),
-      orElse: () => AppointmentStatus.scheduled,
+      orElse: () => AppointmentStatus.proposed,
     );
   }
 
   String get displayName {
     switch (this) {
-      case AppointmentStatus.scheduled:
-        return 'Scheduled';
-      case AppointmentStatus.confirmed:
-        return 'Confirmed';
-      case AppointmentStatus.inProgress:
-        return 'In Progress';
-      case AppointmentStatus.completed:
+      case AppointmentStatus.proposed:
+        return 'Proposed';
+      case AppointmentStatus.pending:
+        return 'Pending';
+      case AppointmentStatus.booked:
+        return 'Booked';
+      case AppointmentStatus.arrived:
+        return 'Arrived';
+      case AppointmentStatus.fulfilled:
         return 'Completed';
       case AppointmentStatus.cancelled:
         return 'Cancelled';
       case AppointmentStatus.noShow:
         return 'No Show';
-      case AppointmentStatus.rescheduled:
-        return 'Rescheduled';
+      case AppointmentStatus.enteredInError:
+        return 'Error';
+      case AppointmentStatus.checkedIn:
+        return 'Checked In';
+      case AppointmentStatus.waitlist:
+        return 'Waitlist';
     }
   }
 
   bool get isUpcoming =>
-      this == AppointmentStatus.scheduled ||
-      this == AppointmentStatus.confirmed ||
-      this == AppointmentStatus.rescheduled;
+      this == AppointmentStatus.proposed ||
+      this == AppointmentStatus.pending ||
+      this == AppointmentStatus.booked ||
+      this == AppointmentStatus.waitlist;
 
   bool get isPast =>
-      this == AppointmentStatus.completed ||
+      this == AppointmentStatus.fulfilled ||
       this == AppointmentStatus.cancelled ||
       this == AppointmentStatus.noShow;
 }
 
-/// Appointment type enum
+/// Appointment type enum matching backend
 enum AppointmentType {
-  inPerson('InPerson'),
-  video('Video'),
-  phone('Phone');
+  consultation('consultation'),
+  followUp('follow-up'),
+  emergency('emergency'),
+  routineCheckup('routine-checkup'),
+  vaccination('vaccination'),
+  labTest('lab-test'),
+  surgery('surgery'),
+  telemedicine('telemedicine');
 
   const AppointmentType(this.value);
   final String value;
@@ -62,18 +77,28 @@ enum AppointmentType {
   static AppointmentType fromString(String value) {
     return AppointmentType.values.firstWhere(
       (type) => type.value.toLowerCase() == value.toLowerCase(),
-      orElse: () => AppointmentType.inPerson,
+      orElse: () => AppointmentType.consultation,
     );
   }
 
   String get displayName {
     switch (this) {
-      case AppointmentType.inPerson:
-        return 'In-Person Visit';
-      case AppointmentType.video:
+      case AppointmentType.consultation:
+        return 'Consultation';
+      case AppointmentType.followUp:
+        return 'Follow-up Visit';
+      case AppointmentType.emergency:
+        return 'Emergency';
+      case AppointmentType.routineCheckup:
+        return 'Routine Checkup';
+      case AppointmentType.vaccination:
+        return 'Vaccination';
+      case AppointmentType.labTest:
+        return 'Lab Test';
+      case AppointmentType.surgery:
+        return 'Surgery';
+      case AppointmentType.telemedicine:
         return 'Video Consultation';
-      case AppointmentType.phone:
-        return 'Phone Consultation';
     }
   }
 }
@@ -84,6 +109,7 @@ class DoctorInfo extends Equatable {
     required this.id,
     required this.name,
     required this.specialty,
+    this.phone,
     this.profilePhoto,
     this.isVerified = false,
   });
@@ -91,14 +117,22 @@ class DoctorInfo extends Equatable {
   final String id;
   final String name;
   final String specialty;
+  final String? phone;
   final String? profilePhoto;
   final bool isVerified;
 
   factory DoctorInfo.fromJson(Map<String, dynamic> json) {
     return DoctorInfo(
       id: json['_id'] as String? ?? json['id'] as String? ?? '',
-      name: json['name'] as String? ?? 'Unknown Doctor',
-      specialty: json['specialty'] as String? ?? 'General Practitioner',
+      // Handle both 'name' and 'fullName' from backend
+      name: json['name'] as String? ??
+          json['fullName'] as String? ??
+          'Unknown Doctor',
+      // Handle both 'specialty' and 'specialization' from backend
+      specialty: json['specialty'] as String? ??
+          json['specialization'] as String? ??
+          'General Practitioner',
+      phone: json['phone'] as String?,
       profilePhoto: json['profilePhoto'] as String?,
       isVerified: json['isVerified'] as bool? ?? false,
     );
@@ -109,13 +143,15 @@ class DoctorInfo extends Equatable {
       'id': id,
       'name': name,
       'specialty': specialty,
+      if (phone != null) 'phone': phone,
       if (profilePhoto != null) 'profilePhoto': profilePhoto,
       'isVerified': isVerified,
     };
   }
 
   @override
-  List<Object?> get props => [id, name, specialty, profilePhoto, isVerified];
+  List<Object?> get props =>
+      [id, name, specialty, phone, profilePhoto, isVerified];
 }
 
 /// Hospital/Location info embedded in appointment
@@ -212,17 +248,49 @@ class AppointmentModel extends Equatable {
   final DateTime? updatedAt;
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
+    // Handle scheduledAt: can be direct or derived from appointmentDate + startTime
+    DateTime scheduledAt;
+    if (json['scheduledAt'] != null) {
+      scheduledAt = DateTime.parse(json['scheduledAt'] as String);
+    } else if (json['appointmentDate'] != null) {
+      // Parse appointmentDate and combine with startTime if available
+      final dateStr = json['appointmentDate'] is String
+          ? json['appointmentDate'] as String
+          : (json['appointmentDate'] as DateTime).toIso8601String();
+      final date = DateTime.parse(dateStr);
+      final startTime = json['startTime'] as String? ?? '09:00';
+      final timeParts = startTime.split(':');
+      scheduledAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        int.tryParse(timeParts[0]) ?? 9,
+        int.tryParse(timeParts.length > 1 ? timeParts[1] : '0') ?? 0,
+      );
+    } else {
+      scheduledAt = DateTime.now();
+    }
+
+    // Handle symptoms: can be String or List
+    List<String>? symptoms;
+    final symptomsRaw = json['symptoms'];
+    if (symptomsRaw is List) {
+      symptoms = symptomsRaw.map((e) => e.toString()).toList();
+    } else if (symptomsRaw is String && symptomsRaw.isNotEmpty) {
+      symptoms = [symptomsRaw];
+    }
+
     return AppointmentModel(
       id: json['_id'] as String? ?? json['id'] as String? ?? '',
       patientId: json['patientId'] as String? ?? '',
       doctorId: json['doctorId'] as String? ?? '',
       hospitalId: json['hospitalId'] as String? ?? '',
-      scheduledAt: json['scheduledAt'] != null
-          ? DateTime.parse(json['scheduledAt'] as String)
-          : DateTime.now(),
-      duration: json['duration'] as int? ?? 30,
+      scheduledAt: scheduledAt,
+      duration:
+          json['duration'] as int? ?? json['durationMinutes'] as int? ?? 30,
       status: AppointmentStatus.fromString(json['status'] as String? ?? ''),
-      type: AppointmentType.fromString(json['type'] as String? ?? ''),
+      type: AppointmentType.fromString(
+          json['type'] as String? ?? json['appointmentType'] as String? ?? ''),
       doctor: json['doctor'] != null
           ? DoctorInfo.fromJson(json['doctor'] as Map<String, dynamic>)
           : null,
@@ -231,11 +299,10 @@ class AppointmentModel extends Equatable {
           : null,
       reasonForVisit: json['reasonForVisit'] as String?,
       notes: json['notes'] as String?,
-      symptoms: (json['symptoms'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
+      symptoms: symptoms,
       meetingLink: json['meetingLink'] as String?,
-      cancelReason: json['cancelReason'] as String?,
+      cancelReason: json['cancelReason'] as String? ??
+          json['cancellationReason'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : null,

@@ -112,7 +112,7 @@ class AppointmentController extends StateNotifier<AppointmentState> {
         total: paginatedAppointments.appointments.length,
         upcoming: upcoming.length,
         completed: paginatedAppointments.appointments
-            .where((a) => a.status == AppointmentStatus.completed)
+            .where((a) => a.status == AppointmentStatus.fulfilled)
             .length,
         cancelled: paginatedAppointments.appointments
             .where((a) => a.status == AppointmentStatus.cancelled)

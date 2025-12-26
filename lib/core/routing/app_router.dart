@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helth_care_system/features/appointment/models/appointment_model.dart';
 
 import '../../features/onboarding/presentation/pages/splash_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
@@ -14,6 +15,7 @@ import '../../features/auth/presentation/pages/notification_permission_page.dart
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/records/presentation/pages/records_page.dart';
 import '../../features/records/presentation/pages/prescription_detail_page.dart';
+import '../../features/records/models/models.dart' as records_models;
 import '../../features/appointment/presentation/pages/appointment_page.dart';
 import '../../features/appointment/presentation/pages/appointment_detail_page.dart';
 import '../../features/upload/presentation/pages/upload_documents_page.dart';
@@ -31,9 +33,7 @@ import '../../features/profile/presentation/pages/security_settings_page.dart';
 import '../../features/profile/presentation/pages/notification_settings_page.dart';
 import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 import '../../features/profile/presentation/pages/feedback_page.dart';
-import '../../core/widgets/prescription_card.dart';
-import '../../core/widgets/appointment_card.dart';
-import 'route_guard.dart';
+import '../auth/token_storage.dart';
 
 class AppRouter {
   static const splash = '/';
@@ -68,7 +68,65 @@ class AppRouter {
   static const profilePrivacyPolicy = '/profile/privacy-policy';
   static const profileFeedback = '/profile/feedback';
 
+  /// Routes that require authentication
+  static const _protectedRoutes = {
+    home,
+    records,
+    prescriptionDetail,
+    appointment,
+    appointmentDetail,
+    upload,
+    scanDocument,
+    uploadDetail,
+    notifications,
+    profile,
+    profilePersonalInfo,
+    profileAboutUs,
+    profileLiveChat,
+    profileHelpCenter,
+    profileFaq,
+    profileLanguages,
+    profileSecuritySettings,
+    profileNotificationSettings,
+    profilePrivacyPolicy,
+    profileFeedback,
+  };
+
+  /// Routes only for unauthenticated users (guest routes)
+  static const _guestOnlyRoutes = {
+    signIn,
+    signUp,
+  };
+
+  /// Check if route requires authentication
+  static bool isProtectedRoute(String? routeName) {
+    return _protectedRoutes.contains(routeName);
+  }
+
+  /// Check if route is guest-only
+  static bool isGuestOnlyRoute(String? routeName) {
+    return _guestOnlyRoutes.contains(routeName);
+  }
+
   Route<dynamic>? onGenerateRoute(RouteSettings settings) {
+    final isAuthenticated = TokenStorage.instance.isAuthenticated();
+
+    // Redirect unauthenticated users from protected routes to welcome
+    if (isProtectedRoute(settings.name) && !isAuthenticated) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (_) => const WelcomePage(),
+      );
+    }
+
+    // Redirect authenticated users from guest-only routes to home
+    if (isGuestOnlyRoute(settings.name) && isAuthenticated) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (_) => const HomePage(),
+      );
+    }
+
     switch (settings.name) {
       case splash:
         return MaterialPageRoute(builder: (_) => const SplashPage());
@@ -101,15 +159,16 @@ class AppRouter {
       case records:
         return MaterialPageRoute(builder: (_) => const RecordsPage());
       case prescriptionDetail:
-        final prescription = settings.arguments as PrescriptionData;
+        final prescription =
+            settings.arguments as records_models.PrescriptionModel;
         return MaterialPageRoute(
             builder: (_) => PrescriptionDetailPage(prescription: prescription));
       case appointment:
         return MaterialPageRoute(builder: (_) => const AppointmentPage());
       case appointmentDetail:
-        final appointmentData = settings.arguments as AppointmentData;
+        final appointment = settings.arguments as AppointmentModel;
         return MaterialPageRoute(
-          builder: (_) => AppointmentDetailPage(appointment: appointmentData),
+          builder: (_) => AppointmentDetailPage(appointment: appointment),
         );
       case upload:
         return MaterialPageRoute(builder: (_) => const UploadDocumentsPage());
@@ -146,21 +205,5 @@ class AppRouter {
       default:
         return MaterialPageRoute(builder: (_) => const SplashPage());
     }
-  }
-
-  Route<dynamic> guarded({
-    required RouteSettings settings,
-    required RouteGuard guard,
-    required WidgetBuilder builder,
-  }) {
-    return MaterialPageRoute(
-      settings: settings,
-      builder: (context) {
-        if (!guard.canActivate(settings)) {
-          return guard.fallback(context: context);
-        }
-        return builder(context);
-      },
-    );
   }
 }

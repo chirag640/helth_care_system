@@ -1,23 +1,12 @@
 import 'package:equatable/equatable.dart';
 
-/// Gender enum
+/// Gender enum aligned with backend
 enum Gender {
-  male('Male'),
-  female('Female'),
-  other('Other'),
-  preferNotToSay('PreferNotToSay');
+  male,
+  female,
+  other;
 
-  const Gender(this.value);
-  final String value;
-
-  static Gender fromString(String value) {
-    return Gender.values.firstWhere(
-      (g) => g.value.toLowerCase() == value.toLowerCase(),
-      orElse: () => Gender.preferNotToSay,
-    );
-  }
-
-  String get displayName {
+  String get value {
     switch (this) {
       case Gender.male:
         return 'Male';
@@ -25,87 +14,94 @@ enum Gender {
         return 'Female';
       case Gender.other:
         return 'Other';
-      case Gender.preferNotToSay:
-        return 'Prefer not to say';
+    }
+  }
+
+  String get displayName => value;
+
+  static Gender? fromString(String? value) {
+    if (value == null) return null;
+    switch (value.toLowerCase()) {
+      case 'male':
+        return Gender.male;
+      case 'female':
+        return Gender.female;
+      case 'other':
+        return Gender.other;
+      default:
+        return null;
     }
   }
 }
 
-/// Blood group enum
+/// Blood group enum aligned with backend
 enum BloodGroup {
-  aPositive('A+'),
-  aNegative('A-'),
-  bPositive('B+'),
-  bNegative('B-'),
-  abPositive('AB+'),
-  abNegative('AB-'),
-  oPositive('O+'),
-  oNegative('O-'),
-  unknown('Unknown');
+  aPositive,
+  aNegative,
+  bPositive,
+  bNegative,
+  abPositive,
+  abNegative,
+  oPositive,
+  oNegative,
+  unknown;
 
-  const BloodGroup(this.value);
-  final String value;
+  String get value {
+    switch (this) {
+      case BloodGroup.aPositive:
+        return 'A+';
+      case BloodGroup.aNegative:
+        return 'A-';
+      case BloodGroup.bPositive:
+        return 'B+';
+      case BloodGroup.bNegative:
+        return 'B-';
+      case BloodGroup.abPositive:
+        return 'AB+';
+      case BloodGroup.abNegative:
+        return 'AB-';
+      case BloodGroup.oPositive:
+        return 'O+';
+      case BloodGroup.oNegative:
+        return 'O-';
+      case BloodGroup.unknown:
+        return 'Unknown';
+    }
+  }
 
-  static BloodGroup fromString(String value) {
-    return BloodGroup.values.firstWhere(
-      (bg) => bg.value == value,
-      orElse: () => BloodGroup.unknown,
-    );
+  static BloodGroup fromString(String? value) {
+    if (value == null || value.isEmpty) return BloodGroup.unknown;
+    switch (value.toUpperCase()) {
+      case 'A+':
+        return BloodGroup.aPositive;
+      case 'A-':
+        return BloodGroup.aNegative;
+      case 'B+':
+        return BloodGroup.bPositive;
+      case 'B-':
+        return BloodGroup.bNegative;
+      case 'AB+':
+        return BloodGroup.abPositive;
+      case 'AB-':
+        return BloodGroup.abNegative;
+      case 'O+':
+        return BloodGroup.oPositive;
+      case 'O-':
+        return BloodGroup.oNegative;
+      default:
+        return BloodGroup.unknown;
+    }
   }
 }
 
-/// Emergency contact info
-class EmergencyContact extends Equatable {
-  const EmergencyContact({
-    required this.name,
-    required this.relationship,
-    required this.phoneNumber,
-    this.email,
-  });
-
-  final String name;
-  final String relationship;
-  final String phoneNumber;
-  final String? email;
-
-  factory EmergencyContact.fromJson(Map<String, dynamic> json) {
-    return EmergencyContact(
-      name: json['name'] as String? ?? '',
-      relationship: json['relationship'] as String? ?? '',
-      phoneNumber: json['phoneNumber'] as String? ?? '',
-      email: json['email'] as String?,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'relationship': relationship,
-      'phoneNumber': phoneNumber,
-      if (email != null) 'email': email,
-    };
-  }
-
-  EmergencyContact copyWith({
-    String? name,
-    String? relationship,
-    String? phoneNumber,
-    String? email,
-  }) {
-    return EmergencyContact(
-      name: name ?? this.name,
-      relationship: relationship ?? this.relationship,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      email: email ?? this.email,
-    );
-  }
-
-  @override
-  List<Object?> get props => [name, relationship, phoneNumber, email];
-}
-
-/// Address info
+/// Address info class aligned with backend
 class AddressInfo extends Equatable {
+  final String? street;
+  final String? city;
+  final String? state;
+  final String? zipCode;
+  final String? country;
+
   const AddressInfo({
     this.street,
     this.city,
@@ -114,13 +110,8 @@ class AddressInfo extends Equatable {
     this.country,
   });
 
-  final String? street;
-  final String? city;
-  final String? state;
-  final String? zipCode;
-  final String? country;
-
-  factory AddressInfo.fromJson(Map<String, dynamic> json) {
+  factory AddressInfo.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const AddressInfo();
     return AddressInfo(
       street: json['street'] as String?,
       city: json['city'] as String?,
@@ -131,364 +122,395 @@ class AddressInfo extends Equatable {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      if (street != null) 'street': street,
-      if (city != null) 'city': city,
-      if (state != null) 'state': state,
-      if (zipCode != null) 'zipCode': zipCode,
-      if (country != null) 'country': country,
-    };
+    final map = <String, dynamic>{};
+    if (street != null && street!.isNotEmpty) map['street'] = street;
+    if (city != null && city!.isNotEmpty) map['city'] = city;
+    if (state != null && state!.isNotEmpty) map['state'] = state;
+    if (zipCode != null && zipCode!.isNotEmpty) map['zipCode'] = zipCode;
+    if (country != null && country!.isNotEmpty) map['country'] = country;
+    return map;
   }
 
-  String get fullAddress {
-    final parts = <String>[];
-    if (street != null && street!.isNotEmpty) parts.add(street!);
-    if (city != null && city!.isNotEmpty) parts.add(city!);
-    if (state != null && state!.isNotEmpty) parts.add(state!);
-    if (zipCode != null && zipCode!.isNotEmpty) parts.add(zipCode!);
-    if (country != null && country!.isNotEmpty) parts.add(country!);
-    return parts.join(', ');
-  }
-
-  AddressInfo copyWith({
-    String? street,
-    String? city,
-    String? state,
-    String? zipCode,
-    String? country,
-  }) {
-    return AddressInfo(
-      street: street ?? this.street,
-      city: city ?? this.city,
-      state: state ?? this.state,
-      zipCode: zipCode ?? this.zipCode,
-      country: country ?? this.country,
-    );
-  }
+  bool get isEmpty =>
+      (street == null || street!.isEmpty) &&
+      (city == null || city!.isEmpty) &&
+      (state == null || state!.isEmpty) &&
+      (zipCode == null || zipCode!.isEmpty) &&
+      (country == null || country!.isEmpty);
 
   @override
   List<Object?> get props => [street, city, state, zipCode, country];
 }
 
-/// Patient profile model
-class PatientModel extends Equatable {
-  const PatientModel({
-    required this.id,
-    required this.userId,
-    required this.email,
-    this.firstName,
-    this.lastName,
+/// Emergency contact class aligned with backend
+class EmergencyContact extends Equatable {
+  final String? name;
+  final String? phoneNumber;
+  final String? relationship;
+
+  const EmergencyContact({
+    this.name,
     this.phoneNumber,
-    this.dateOfBirth,
-    this.gender,
-    this.bloodGroup,
-    this.profilePhoto,
-    this.address,
-    this.emergencyContact,
-    this.allergies,
-    this.chronicConditions,
-    this.insuranceProvider,
-    this.insurancePolicyNumber,
-    this.height,
-    this.weight,
-    this.isActive = true,
-    this.isEmailVerified = false,
-    this.isPhoneVerified = false,
-    this.createdAt,
-    this.updatedAt,
+    this.relationship,
   });
 
-  final String id;
-  final String userId;
-  final String email;
-  final String? firstName;
-  final String? lastName;
-  final String? phoneNumber;
-  final DateTime? dateOfBirth;
-  final Gender? gender;
-  final BloodGroup? bloodGroup;
-  final String? profilePhoto;
-  final AddressInfo? address;
-  final EmergencyContact? emergencyContact;
-  final List<String>? allergies;
-  final List<String>? chronicConditions;
-  final String? insuranceProvider;
-  final String? insurancePolicyNumber;
-  final double? height; // in cm
-  final double? weight; // in kg
-  final bool isActive;
-  final bool isEmailVerified;
-  final bool isPhoneVerified;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-
-  /// Get full name
-  String get fullName {
-    final parts = <String>[];
-    if (firstName != null && firstName!.isNotEmpty) parts.add(firstName!);
-    if (lastName != null && lastName!.isNotEmpty) parts.add(lastName!);
-    return parts.isNotEmpty ? parts.join(' ') : 'User';
-  }
-
-  /// Get age from date of birth
-  int? get age {
-    if (dateOfBirth == null) return null;
-    final now = DateTime.now();
-    int years = now.year - dateOfBirth!.year;
-    if (now.month < dateOfBirth!.month ||
-        (now.month == dateOfBirth!.month && now.day < dateOfBirth!.day)) {
-      years--;
-    }
-    return years;
-  }
-
-  /// Get BMI if height and weight available
-  double? get bmi {
-    if (height == null || weight == null || height! <= 0) return null;
-    final heightInMeters = height! / 100;
-    return weight! / (heightInMeters * heightInMeters);
-  }
-
-  factory PatientModel.fromJson(Map<String, dynamic> json) {
-    return PatientModel(
-      id: json['_id'] as String? ?? json['id'] as String? ?? '',
-      userId: json['userId'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-      firstName: json['firstName'] as String?,
-      lastName: json['lastName'] as String?,
+  factory EmergencyContact.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const EmergencyContact();
+    return EmergencyContact(
+      name: json['name'] as String?,
       phoneNumber: json['phoneNumber'] as String?,
-      dateOfBirth: json['dateOfBirth'] != null
-          ? DateTime.tryParse(json['dateOfBirth'] as String)
-          : null,
-      gender: json['gender'] != null
-          ? Gender.fromString(json['gender'] as String)
-          : null,
-      bloodGroup: json['bloodGroup'] != null
-          ? BloodGroup.fromString(json['bloodGroup'] as String)
-          : null,
-      profilePhoto: json['profilePhoto'] as String?,
-      address: json['address'] != null
-          ? AddressInfo.fromJson(json['address'] as Map<String, dynamic>)
-          : null,
-      emergencyContact: json['emergencyContact'] != null
-          ? EmergencyContact.fromJson(
-              json['emergencyContact'] as Map<String, dynamic>)
-          : null,
-      allergies: (json['allergies'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
-      chronicConditions: (json['chronicConditions'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
-      insuranceProvider: json['insuranceProvider'] as String?,
-      insurancePolicyNumber: json['insurancePolicyNumber'] as String?,
-      height: (json['height'] as num?)?.toDouble(),
-      weight: (json['weight'] as num?)?.toDouble(),
-      isActive: json['isActive'] as bool? ?? true,
-      isEmailVerified: json['isEmailVerified'] as bool? ?? false,
-      isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'] as String)
-          : null,
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.tryParse(json['updatedAt'] as String)
-          : null,
+      relationship: json['relationship'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{};
+    if (name != null && name!.isNotEmpty) map['name'] = name;
+    if (phoneNumber != null && phoneNumber!.isNotEmpty) {
+      map['phoneNumber'] = phoneNumber;
+    }
+    if (relationship != null && relationship!.isNotEmpty) {
+      map['relationship'] = relationship;
+    }
+    return map;
+  }
+
+  bool get isEmpty =>
+      (name == null || name!.isEmpty) &&
+      (phoneNumber == null || phoneNumber!.isEmpty) &&
+      (relationship == null || relationship!.isEmpty);
+
+  @override
+  List<Object?> get props => [name, phoneNumber, relationship];
+}
+
+/// Patient model aligned with backend PatientOutputDto
+/// Backend fields: id, guid, fullName, phone, gender, dateOfBirth,
+/// address, allergies, chronicDiseases, bloodGroup, emergencyContact,
+/// hasSmartphone, idCardIssued, createdAt, updatedAt
+class PatientModel extends Equatable {
+  final String id;
+  final String? guid;
+  final String? fullName; // Backend uses fullName, not firstName/lastName
+  final String? phone; // Backend uses phone, not phoneNumber
+  final Gender? gender;
+  final DateTime? dateOfBirth;
+  final AddressInfo? address;
+  final List<String>? allergies;
+  final List<String>? chronicDiseases; // Backend uses chronicDiseases
+  final BloodGroup? bloodGroup;
+  final EmergencyContact? emergencyContact;
+  final bool? hasSmartphone;
+  final bool? idCardIssued;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  // Email is from auth, not patient record - keep for display only
+  final String email;
+  final String? profilePhoto;
+
+  const PatientModel({
+    required this.id,
+    this.guid,
+    this.fullName,
+    this.phone,
+    this.gender,
+    this.dateOfBirth,
+    this.address,
+    this.allergies,
+    this.chronicDiseases,
+    this.bloodGroup,
+    this.emergencyContact,
+    this.hasSmartphone,
+    this.idCardIssued,
+    this.createdAt,
+    this.updatedAt,
+    this.email = '',
+    this.profilePhoto,
+  });
+
+  /// Parse patient from API response
+  factory PatientModel.fromJson(Map<String, dynamic> json, {String? email}) {
+    return PatientModel(
+      id: json['id'] as String? ?? json['_id'] as String? ?? '',
+      guid: json['guid'] as String?,
+      fullName: json['fullName'] as String?,
+      phone: json['phone'] as String?,
+      gender: Gender.fromString(json['gender'] as String?),
+      dateOfBirth: json['dateOfBirth'] != null
+          ? DateTime.tryParse(json['dateOfBirth'].toString())
+          : null,
+      address: json['address'] != null
+          ? AddressInfo.fromJson(json['address'] as Map<String, dynamic>?)
+          : null,
+      allergies: json['allergies'] != null
+          ? List<String>.from(json['allergies'] as List)
+          : null,
+      chronicDiseases: json['chronicDiseases'] != null
+          ? List<String>.from(json['chronicDiseases'] as List)
+          : null,
+      bloodGroup: BloodGroup.fromString(json['bloodGroup'] as String?),
+      emergencyContact: json['emergencyContact'] != null
+          ? EmergencyContact.fromJson(
+              json['emergencyContact'] as Map<String, dynamic>?)
+          : null,
+      hasSmartphone: json['hasSmartphone'] as bool?,
+      idCardIssued: json['idCardIssued'] as bool?,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'].toString())
+          : null,
+      email: email ?? json['email'] as String? ?? '',
+      profilePhoto: json['profilePhoto'] as String?,
+    );
+  }
+
+  /// Convert to JSON for API
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'userId': userId,
-      'email': email,
-      if (firstName != null) 'firstName': firstName,
-      if (lastName != null) 'lastName': lastName,
-      if (phoneNumber != null) 'phoneNumber': phoneNumber,
-      if (dateOfBirth != null) 'dateOfBirth': dateOfBirth!.toIso8601String(),
+      if (guid != null) 'guid': guid,
+      if (fullName != null) 'fullName': fullName,
+      if (phone != null) 'phone': phone,
       if (gender != null) 'gender': gender!.value,
-      if (bloodGroup != null) 'bloodGroup': bloodGroup!.value,
-      if (profilePhoto != null) 'profilePhoto': profilePhoto,
-      if (address != null) 'address': address!.toJson(),
-      if (emergencyContact != null)
-        'emergencyContact': emergencyContact!.toJson(),
+      if (dateOfBirth != null) 'dateOfBirth': dateOfBirth!.toIso8601String(),
+      if (address != null && !address!.isEmpty) 'address': address!.toJson(),
       if (allergies != null) 'allergies': allergies,
-      if (chronicConditions != null) 'chronicConditions': chronicConditions,
-      if (insuranceProvider != null) 'insuranceProvider': insuranceProvider,
-      if (insurancePolicyNumber != null)
-        'insurancePolicyNumber': insurancePolicyNumber,
-      if (height != null) 'height': height,
-      if (weight != null) 'weight': weight,
-      'isActive': isActive,
-      'isEmailVerified': isEmailVerified,
-      'isPhoneVerified': isPhoneVerified,
+      if (chronicDiseases != null) 'chronicDiseases': chronicDiseases,
+      if (bloodGroup != null && bloodGroup != BloodGroup.unknown)
+        'bloodGroup': bloodGroup!.value,
+      if (emergencyContact != null && !emergencyContact!.isEmpty)
+        'emergencyContact': emergencyContact!.toJson(),
+      if (hasSmartphone != null) 'hasSmartphone': hasSmartphone,
+      if (idCardIssued != null) 'idCardIssued': idCardIssued,
     };
   }
 
+  /// Create a copy with updated fields
   PatientModel copyWith({
     String? id,
-    String? userId,
-    String? email,
-    String? firstName,
-    String? lastName,
-    String? phoneNumber,
-    DateTime? dateOfBirth,
+    String? guid,
+    String? fullName,
+    String? phone,
     Gender? gender,
-    BloodGroup? bloodGroup,
-    String? profilePhoto,
+    DateTime? dateOfBirth,
     AddressInfo? address,
-    EmergencyContact? emergencyContact,
     List<String>? allergies,
-    List<String>? chronicConditions,
-    String? insuranceProvider,
-    String? insurancePolicyNumber,
-    double? height,
-    double? weight,
-    bool? isActive,
-    bool? isEmailVerified,
-    bool? isPhoneVerified,
+    List<String>? chronicDiseases,
+    BloodGroup? bloodGroup,
+    EmergencyContact? emergencyContact,
+    bool? hasSmartphone,
+    bool? idCardIssued,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? email,
+    String? profilePhoto,
   }) {
     return PatientModel(
       id: id ?? this.id,
-      userId: userId ?? this.userId,
-      email: email ?? this.email,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      guid: guid ?? this.guid,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
       gender: gender ?? this.gender,
-      bloodGroup: bloodGroup ?? this.bloodGroup,
-      profilePhoto: profilePhoto ?? this.profilePhoto,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       address: address ?? this.address,
-      emergencyContact: emergencyContact ?? this.emergencyContact,
       allergies: allergies ?? this.allergies,
-      chronicConditions: chronicConditions ?? this.chronicConditions,
-      insuranceProvider: insuranceProvider ?? this.insuranceProvider,
-      insurancePolicyNumber:
-          insurancePolicyNumber ?? this.insurancePolicyNumber,
-      height: height ?? this.height,
-      weight: weight ?? this.weight,
-      isActive: isActive ?? this.isActive,
-      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
-      isPhoneVerified: isPhoneVerified ?? this.isPhoneVerified,
+      chronicDiseases: chronicDiseases ?? this.chronicDiseases,
+      bloodGroup: bloodGroup ?? this.bloodGroup,
+      emergencyContact: emergencyContact ?? this.emergencyContact,
+      hasSmartphone: hasSmartphone ?? this.hasSmartphone,
+      idCardIssued: idCardIssued ?? this.idCardIssued,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      email: email ?? this.email,
+      profilePhoto: profilePhoto ?? this.profilePhoto,
     );
   }
 
   @override
   List<Object?> get props => [
         id,
-        userId,
-        email,
-        firstName,
-        lastName,
-        phoneNumber,
-        dateOfBirth,
+        guid,
+        fullName,
+        phone,
         gender,
-        bloodGroup,
-        profilePhoto,
+        dateOfBirth,
         address,
-        emergencyContact,
         allergies,
-        chronicConditions,
-        insuranceProvider,
-        insurancePolicyNumber,
-        height,
-        weight,
-        isActive,
-        isEmailVerified,
-        isPhoneVerified,
+        chronicDiseases,
+        bloodGroup,
+        emergencyContact,
+        hasSmartphone,
+        idCardIssued,
         createdAt,
         updatedAt,
+        email,
+        profilePhoto,
       ];
 }
 
-/// Request model for updating patient profile
+/// Request model for updating patient - aligned with backend UpdatePatientDto
+/// Backend fields: guid, fullName, phone, gender, dateOfBirth, address,
+/// allergies, chronicDiseases, bloodGroup, emergencyContact, hasSmartphone, idCardIssued
 class UpdatePatientRequest {
+  final String? guid;
+  final String? fullName; // Use fullName, NOT firstName/lastName
+  final String? phone; // Use phone, NOT phoneNumber - must match /^[6-9]\d{9}$/
+  final Gender? gender;
+  final DateTime? dateOfBirth;
+  final AddressInfo? address;
+  final List<String>? allergies;
+  final List<String>?
+      chronicDiseases; // Use chronicDiseases, NOT chronicConditions
+  final BloodGroup? bloodGroup;
+  final EmergencyContact? emergencyContact;
+  final bool? hasSmartphone;
+  final bool? idCardIssued;
+
+  // Note: height and weight are NOT supported by backend UpdatePatientDto
+  // If needed, they should be stored in a separate vital signs record
+
   const UpdatePatientRequest({
-    this.firstName,
-    this.lastName,
-    this.phoneNumber,
-    this.dateOfBirth,
+    this.guid,
+    this.fullName,
+    this.phone,
     this.gender,
-    this.bloodGroup,
+    this.dateOfBirth,
     this.address,
-    this.emergencyContact,
     this.allergies,
-    this.chronicConditions,
-    this.insuranceProvider,
-    this.insurancePolicyNumber,
-    this.height,
-    this.weight,
+    this.chronicDiseases,
+    this.bloodGroup,
+    this.emergencyContact,
+    this.hasSmartphone,
+    this.idCardIssued,
   });
 
-  final String? firstName;
-  final String? lastName;
-  final String? phoneNumber;
-  final DateTime? dateOfBirth;
-  final Gender? gender;
-  final BloodGroup? bloodGroup;
-  final AddressInfo? address;
-  final EmergencyContact? emergencyContact;
-  final List<String>? allergies;
-  final List<String>? chronicConditions;
-  final String? insuranceProvider;
-  final String? insurancePolicyNumber;
-  final double? height;
-  final double? weight;
-
+  /// Convert to JSON for API - only include non-null fields
   Map<String, dynamic> toJson() {
-    return {
-      if (firstName != null) 'firstName': firstName,
-      if (lastName != null) 'lastName': lastName,
-      if (phoneNumber != null) 'phoneNumber': phoneNumber,
-      if (dateOfBirth != null) 'dateOfBirth': dateOfBirth!.toIso8601String(),
-      if (gender != null) 'gender': gender!.value,
-      if (bloodGroup != null) 'bloodGroup': bloodGroup!.value,
-      if (address != null) 'address': address!.toJson(),
-      if (emergencyContact != null)
-        'emergencyContact': emergencyContact!.toJson(),
-      if (allergies != null) 'allergies': allergies,
-      if (chronicConditions != null) 'chronicConditions': chronicConditions,
-      if (insuranceProvider != null) 'insuranceProvider': insuranceProvider,
-      if (insurancePolicyNumber != null)
-        'insurancePolicyNumber': insurancePolicyNumber,
-      if (height != null) 'height': height,
-      if (weight != null) 'weight': weight,
-    };
+    final map = <String, dynamic>{};
+
+    if (guid != null && guid!.isNotEmpty) {
+      map['guid'] = guid;
+    }
+    if (fullName != null && fullName!.isNotEmpty) {
+      map['fullName'] = fullName;
+    }
+    if (phone != null && phone!.isNotEmpty) {
+      map['phone'] = phone;
+    }
+    if (gender != null) {
+      map['gender'] = gender!.value;
+    }
+    if (dateOfBirth != null) {
+      map['dateOfBirth'] = dateOfBirth!.toIso8601String();
+    }
+    if (address != null && !address!.isEmpty) {
+      map['address'] = address!.toJson();
+    }
+    if (allergies != null && allergies!.isNotEmpty) {
+      map['allergies'] = allergies;
+    }
+    if (chronicDiseases != null && chronicDiseases!.isNotEmpty) {
+      map['chronicDiseases'] = chronicDiseases;
+    }
+    if (bloodGroup != null && bloodGroup != BloodGroup.unknown) {
+      map['bloodGroup'] = bloodGroup!.value;
+    }
+    if (emergencyContact != null && !emergencyContact!.isEmpty) {
+      map['emergencyContact'] = emergencyContact!.toJson();
+    }
+    if (hasSmartphone != null) {
+      map['hasSmartphone'] = hasSmartphone;
+    }
+    if (idCardIssued != null) {
+      map['idCardIssued'] = idCardIssued;
+    }
+
+    return map;
   }
 }
 
-/// Paginated response for patients
-class PaginatedPatients {
-  const PaginatedPatients({
-    required this.patients,
-    required this.total,
-    required this.page,
-    required this.limit,
-    required this.totalPages,
-  });
-
-  final List<PatientModel> patients;
+/// Paginated patients response model
+class PaginatedPatients extends Equatable {
+  final List<PatientModel> items;
   final int total;
   final int page;
   final int limit;
   final int totalPages;
+  final bool hasNextPage;
+  final bool hasPreviousPage;
+
+  const PaginatedPatients({
+    required this.items,
+    required this.total,
+    required this.page,
+    required this.limit,
+    required this.totalPages,
+    required this.hasNextPage,
+    required this.hasPreviousPage,
+  });
 
   factory PaginatedPatients.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as List<dynamic>? ?? [];
+    final items = (json['items'] as List?)
+            ?.map((e) => PatientModel.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+    final total = json['total'] as int? ?? items.length;
+    final page = json['page'] as int? ?? 1;
+    final limit = json['limit'] as int? ?? 10;
+    final totalPages = json['totalPages'] as int? ?? ((total / limit).ceil());
+
     return PaginatedPatients(
-      patients: data
-          .map((e) => PatientModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      total: json['total'] as int? ?? 0,
-      page: json['page'] as int? ?? 1,
-      limit: json['limit'] as int? ?? 10,
-      totalPages: json['totalPages'] as int? ?? 1,
+      items: items,
+      total: total,
+      page: page,
+      limit: limit,
+      totalPages: totalPages,
+      hasNextPage: json['hasNextPage'] as bool? ?? (page < totalPages),
+      hasPreviousPage: json['hasPreviousPage'] as bool? ?? (page > 1),
     );
   }
 
-  bool get hasMore => page < totalPages;
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
+        'total': total,
+        'page': page,
+        'limit': limit,
+        'totalPages': totalPages,
+        'hasNextPage': hasNextPage,
+        'hasPreviousPage': hasPreviousPage,
+      };
+
+  @override
+  List<Object?> get props => [
+        items,
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage,
+        hasPreviousPage,
+      ];
+
+  PaginatedPatients copyWith({
+    List<PatientModel>? items,
+    int? total,
+    int? page,
+    int? limit,
+    int? totalPages,
+    bool? hasNextPage,
+    bool? hasPreviousPage,
+  }) {
+    return PaginatedPatients(
+      items: items ?? this.items,
+      total: total ?? this.total,
+      page: page ?? this.page,
+      limit: limit ?? this.limit,
+      totalPages: totalPages ?? this.totalPages,
+      hasNextPage: hasNextPage ?? this.hasNextPage,
+      hasPreviousPage: hasPreviousPage ?? this.hasPreviousPage,
+    );
+  }
 }

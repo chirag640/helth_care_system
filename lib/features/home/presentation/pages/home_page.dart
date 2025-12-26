@@ -476,7 +476,7 @@ class HomePage extends ConsumerWidget {
       doctorName: prescription.prescriberName ?? 'Doctor',
       doctorQualification: prescription.form?.displayName ?? '',
       location: prescription.dosageSummary,
-      prescriptionId: prescription.prescriptionNumber,
+      prescriptionId: prescription.prescriptionNumber ?? prescription.id,
       prescriptionCount: prescription.dosageInstructions.isNotEmpty
           ? prescription.dosageInstructions.length
           : 1,

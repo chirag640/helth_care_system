@@ -162,11 +162,12 @@ class NotificationApiService {
     required String platform,
   }) async {
     try {
+      // Using backend's /preferences/me/device-token endpoint
       await _apiClient.post(
-        '$_basePath/devices',
+        '$_basePath/preferences/me/device-token',
         data: {
           'token': token,
-          'platform': platform,
+          // Note: Backend only expects 'token', platform is stored separately if needed
         },
       );
     } on DioException catch (e) {
@@ -178,9 +179,9 @@ class NotificationApiService {
   /// Unregister device from push notifications
   Future<void> unregisterDevice(String token) async {
     try {
+      // Using backend's /preferences/me/device-token/:token endpoint
       await _apiClient.delete(
-        '$_basePath/devices',
-        data: {'token': token},
+        '$_basePath/preferences/me/device-token/$token',
       );
     } on DioException catch (e) {
       AppLogger.error(

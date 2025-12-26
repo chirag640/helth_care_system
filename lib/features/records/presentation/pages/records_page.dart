@@ -494,7 +494,7 @@ class _RecordsPageState extends ConsumerState<RecordsPage> {
       doctorName: prescription.prescriberName ?? 'Doctor',
       doctorQualification: prescription.form?.displayName ?? '',
       location: prescription.dosageSummary,
-      prescriptionId: prescription.prescriptionNumber,
+      prescriptionId: prescription.prescriptionNumber ?? prescription.id,
       prescriptionCount: prescription.dosageInstructions.length > 0
           ? prescription.dosageInstructions.length
           : 1,

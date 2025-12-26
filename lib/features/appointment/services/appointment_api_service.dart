@@ -107,7 +107,8 @@ class AppointmentApiService {
     UpdateAppointmentRequest request,
   ) async {
     try {
-      final response = await _apiClient.put(
+      // Using PATCH to match backend API (PUT also supported for compatibility)
+      final response = await _apiClient.patch(
         '$_basePath/$id',
         data: request.toJson(),
       );
@@ -122,9 +123,10 @@ class AppointmentApiService {
   /// Cancel an appointment
   Future<void> cancelAppointment(String id, {String? reason}) async {
     try {
-      await _apiClient.delete(
-        '$_basePath/$id',
-        data: reason != null ? {'cancelReason': reason} : null,
+      // Using POST /:id/cancel endpoint to match backend API
+      await _apiClient.post(
+        '$_basePath/$id/cancel',
+        data: {'cancellationReason': reason ?? 'Cancelled by patient'},
       );
     } on DioException catch (e) {
       AppLogger.error(
@@ -139,6 +141,7 @@ class AppointmentApiService {
     UpdateAppointmentStatusRequest request,
   ) async {
     try {
+      // Using PUT /:id/status endpoint to match backend API
       final response = await _apiClient.put(
         '$_basePath/$id/status',
         data: request.toJson(),
@@ -294,9 +297,10 @@ class AppointmentApiService {
     required DateTime newScheduledAt,
   }) async {
     try {
-      final response = await _apiClient.put(
+      // Using PATCH to match backend API
+      final response = await _apiClient.patch(
         '$_basePath/$id',
-        data: {'scheduledAt': newScheduledAt.toIso8601String()},
+        data: {'appointmentDate': newScheduledAt.toIso8601String()},
       );
       return AppointmentModel.fromJson(_extractData(response.data));
     } on DioException catch (e) {

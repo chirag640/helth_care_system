@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/auth/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/social_button.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../profile/controller/profile_controller.dart';
 import '../../controller/auth_controller.dart';
 
 class SignInPage extends ConsumerStatefulWidget {
@@ -35,6 +37,34 @@ class _SignInPageState extends ConsumerState<SignInPage> {
         );
 
     if (success && mounted) {
+      // Check if this is a new user who needs to complete setup
+      final tokenStorage = TokenStorage.instance;
+      final arePermissionsRequested = tokenStorage.arePermissionsRequested();
+      final isProfileSetupComplete = tokenStorage.isProfileSetupComplete();
+
+      if (!arePermissionsRequested) {
+        // New user - go through permission flow first
+        Navigator.pushReplacementNamed(context, AppRouter.locationPermission);
+        return;
+      }
+
+      if (!isProfileSetupComplete) {
+        // Check if profile has required fields
+        await ref.read(profileControllerProvider.notifier).loadProfile();
+        final profileState = ref.read(profileControllerProvider);
+
+        if (!profileState.isProfileComplete) {
+          // Profile incomplete - go to personal info
+          Navigator.pushReplacementNamed(
+            context,
+            AppRouter.profilePersonalInfo,
+            arguments: 'initial',
+          );
+          return;
+        }
+      }
+
+      // Everything complete - go to home
       Navigator.pushReplacementNamed(context, AppRouter.home);
     }
   }

@@ -76,7 +76,7 @@ class WelcomePage extends StatelessWidget {
                 height: AppResponsive.s(context, 56),
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pushReplacementNamed(context, AppRouter.signUp);
+                    Navigator.pushNamed(context, AppRouter.signUp);
                   },
                   style: Theme.of(context).elevatedButtonTheme.style?.copyWith(
                         shape: WidgetStateProperty.all(
@@ -109,7 +109,7 @@ class WelcomePage extends StatelessWidget {
                   GestureDetector(
                     onTap: () {
                       // Navigate to sign in
-                      Navigator.pushReplacementNamed(context, AppRouter.signIn);
+                      Navigator.pushNamed(context, AppRouter.signIn);
                     },
                     child: Text(
                       'Sign In',

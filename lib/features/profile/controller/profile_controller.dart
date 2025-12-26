@@ -48,9 +48,12 @@ class ProfileState {
   /// Check if profile is complete
   bool get isProfileComplete {
     if (patient == null) return false;
-    return patient!.firstName != null &&
-        patient!.lastName != null &&
-        patient!.phoneNumber != null &&
+    // Backend uses fullName instead of firstName/lastName
+    // Backend uses phone instead of phoneNumber
+    return patient!.fullName != null &&
+        patient!.fullName!.isNotEmpty &&
+        patient!.phone != null &&
+        patient!.phone!.isNotEmpty &&
         patient!.dateOfBirth != null &&
         patient!.gender != null;
   }
@@ -81,8 +84,7 @@ class ProfileController extends StateNotifier<ProfileState> {
       final patient = await _service.getCurrentPatient();
       if (patient == null) {
         // No patient profile yet - this is normal for new users
-        AppLogger.info(
-            'No patient profile found - profile setup required',
+        AppLogger.info('No patient profile found - profile setup required',
             'ProfileController');
         state = const ProfileState(
           isLoading: false,
@@ -141,17 +143,16 @@ class ProfileController extends StateNotifier<ProfileState> {
   }
 
   /// Update basic info
+  /// Backend uses fullName (not firstName/lastName) and phone (not phoneNumber)
   Future<bool> updateBasicInfo({
-    String? firstName,
-    String? lastName,
-    String? phoneNumber,
+    String? fullName,
+    String? phone,
     DateTime? dateOfBirth,
     Gender? gender,
   }) async {
     return updateProfile(UpdatePatientRequest(
-      firstName: firstName,
-      lastName: lastName,
-      phoneNumber: phoneNumber,
+      fullName: fullName,
+      phone: phone,
       dateOfBirth: dateOfBirth,
       gender: gender,
     ));
@@ -269,19 +270,17 @@ class ProfileController extends StateNotifier<ProfileState> {
   }
 
   /// Update health info
+  /// Note: height and weight are NOT supported by backend UpdatePatientDto
+  /// Use chronicDiseases (not chronicConditions) to match backend
   Future<bool> updateHealthInfo({
     BloodGroup? bloodGroup,
-    double? height,
-    double? weight,
     List<String>? allergies,
-    List<String>? chronicConditions,
+    List<String>? chronicDiseases,
   }) async {
     return updateProfile(UpdatePatientRequest(
       bloodGroup: bloodGroup,
-      height: height,
-      weight: weight,
       allergies: allergies,
-      chronicConditions: chronicConditions,
+      chronicDiseases: chronicDiseases,
     ));
   }
 

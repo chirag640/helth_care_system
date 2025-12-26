@@ -24,11 +24,10 @@ class EnvLoader {
 
   static String get apiBaseUrl {
     if (_isLoaded) {
-      return dotenv.maybeGet('API_BASE_URL') ??
-          'http://10.198.119.147:3000/api';
+      return dotenv.maybeGet('API_BASE_URL') ?? 'http://192.168.0.117:3000/api';
     }
     // For physical device: use computer's IP address + /api prefix
     // For emulator: use 10.0.2.2 instead
-    return 'http://10.198.119.147:3000/api';
+    return 'http://192.168.0.117:3000/api';
   }
 }

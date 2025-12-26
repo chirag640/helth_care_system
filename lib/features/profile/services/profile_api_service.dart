@@ -73,7 +73,8 @@ class ProfileApiService {
     UpdatePatientRequest request,
   ) async {
     try {
-      final response = await _apiClient.put(
+      // Using PATCH to match backend API (which uses @Patch decorator)
+      final response = await _apiClient.patch(
         '$_basePath/$patientId',
         data: request.toJson(),
       );
