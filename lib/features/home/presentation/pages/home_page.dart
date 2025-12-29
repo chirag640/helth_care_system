@@ -210,7 +210,8 @@ class HomePage extends ConsumerWidget {
               CategoryCard(
                 icon: Icons.medical_services_outlined,
                 label: 'Allergies',
-                onTap: () {},
+                onTap: () =>
+                    Navigator.pushNamed(context, AppRouter.profilePersonalInfo),
               ),
               CategoryCard(
                 icon: Icons.medication_outlined,

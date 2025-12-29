@@ -584,24 +584,40 @@ class ProfilePage extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () async {
+              // Close the confirmation dialog first
               Navigator.pop(context);
+
+              // Get the root navigator context before any async operations
+              final navigatorContext =
+                  Navigator.of(context, rootNavigator: true).context;
+
               // Show loading indicator
               showDialog(
-                context: context,
+                context: navigatorContext,
                 barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: CircularProgressIndicator(),
+                builder: (dialogContext) => WillPopScope(
+                  onWillPop: () async => false,
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
                 ),
               );
 
-              // Sign out using auth controller
-              await ref.read(authControllerProvider.notifier).signOut();
+              try {
+                // Sign out using auth controller
+                await ref.read(authControllerProvider.notifier).signOut();
 
-              if (context.mounted) {
-                // Close loading indicator
-                Navigator.pop(context);
+                // Small delay to ensure state is updated
+                await Future.delayed(const Duration(milliseconds: 300));
+              } catch (e) {
+                // Error during logout
+              }
+
+              // Close loading indicator and navigate
+              if (navigatorContext.mounted) {
+                Navigator.of(navigatorContext).pop(); // Close loading
                 // Navigate to sign in page and clear all previous routes
-                Navigator.of(context).pushNamedAndRemoveUntil(
+                Navigator.of(navigatorContext).pushNamedAndRemoveUntil(
                   AppRouter.signIn,
                   (route) => false,
                 );

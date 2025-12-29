@@ -24,6 +24,7 @@ import '../../features/upload/presentation/pages/upload_detail_page.dart';
 import '../../features/notification/presentation/pages/notifications_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/personal_information_page.dart';
+import '../../features/profile/presentation/pages/profile_edit_page.dart';
 import '../../features/profile/presentation/pages/about_us_page.dart';
 import '../../features/profile/presentation/pages/live_chat_page.dart';
 import '../../features/profile/presentation/pages/help_center_page.dart';
@@ -181,8 +182,7 @@ class AppRouter {
       case profile:
         return MaterialPageRoute(builder: (_) => const ProfilePage());
       case profilePersonalInfo:
-        return MaterialPageRoute(
-            builder: (_) => const PersonalInformationPage());
+        return MaterialPageRoute(builder: (_) => const ProfileEditPage());
       case profileAboutUs:
         return MaterialPageRoute(builder: (_) => const AboutUsPage());
       case profileLiveChat:
